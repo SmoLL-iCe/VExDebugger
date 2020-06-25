@@ -1,0 +1,53 @@
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+
+# Executables
+*.exe
+*.out
+*.app
+*.db
+*.db-shm
+*.db-wal
+*.opendb
+*.ipch
+.vs/VExDebug/v16/.suo
+*.txt
+*.pdb
+*.log
+*.tlog
+*.metagen
+*.iobj
+*.ipdb
+*.ilk
+*.idb
+VExDebug_form/Debug/.NETFramework,Version=v4.5.AssemblyAttributes.cpp
+*.cache
+*.resources
+VExDebug_form/Release/.NETFramework,Version=v4.5.AssemblyAttributes.cpp
+.vs/veh/v16/.suo
+*.pdb
+

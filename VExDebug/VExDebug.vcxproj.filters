@@ -1,0 +1,68 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Arquivos de Origem">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Arquivos de Cabeçalho">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="VExDebug">
+      <UniqueIdentifier>{280d33bd-45f5-4288-9af2-082aaa324d50}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="VExDebug\hwbkp">
+      <UniqueIdentifier>{4400b40b-7faf-4852-8339-315f52f158f8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="VExDebug\hwbkp\threads">
+      <UniqueIdentifier>{a011e293-65c9-4d85-8b1e-6c8e506fa488}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="VExDebug\utils">
+      <UniqueIdentifier>{61550d37-7b00-4549-885c-4a4e2c9cde99}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="WinApiWrapper">
+      <UniqueIdentifier>{5f545f8b-eb97-4753-bb1d-d7ea4ecdad72}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="framework.h">
+      <Filter>Arquivos de Cabeçalho</Filter>
+    </ClInclude>
+    <ClInclude Include="hwbkp\threads\threads.h">
+      <Filter>VExDebug\hwbkp\threads</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\utils.hpp">
+      <Filter>VExDebug\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\import\include\VExDebug.h">
+      <Filter>VExDebug</Filter>
+    </ClInclude>
+    <ClInclude Include="winapi_wrapper\nt_structs.h">
+      <Filter>WinApiWrapper</Filter>
+    </ClInclude>
+    <ClInclude Include="winapi_wrapper\nt_wrapper.h">
+      <Filter>WinApiWrapper</Filter>
+    </ClInclude>
+    <ClInclude Include="winapi_wrapper\winapi_wrapper.h">
+      <Filter>WinApiWrapper</Filter>
+    </ClInclude>
+    <ClInclude Include="hwbkp\hw_bkp.h">
+      <Filter>VExDebug\hwbkp</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="dllmain.cpp">
+      <Filter>Arquivos de Origem</Filter>
+    </ClCompile>
+    <ClCompile Include="hwbkp\hw_bkp.cpp">
+      <Filter>VExDebug\hwbkp</Filter>
+    </ClCompile>
+    <ClCompile Include="hwbkp\threads\threads.cpp">
+      <Filter>VExDebug\hwbkp\threads</Filter>
+    </ClCompile>
+    <ClCompile Include="VExDebug.cpp">
+      <Filter>VExDebug</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
