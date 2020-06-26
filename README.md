@@ -7,7 +7,8 @@
 is a simple access and write debugger that uses hardware breakpoints, and that manages debugging using the windows exception support system (based on the VEH of the Cheat Engine).
 
 <h3 align="center">
-  <img src="README/VExDebug.png" alt="screeen" />
+  <img src="README/vex_debug_gui.png" alt="screeen" />
+  <img src="README/vex_debug_form.png" alt="screeen" />
 </h3>
 
 > __Nota:__ *This tool is in beta, it may have problems depending on some variant not yet tested.*
@@ -22,6 +23,11 @@ is a simple access and write debugger that uses hardware breakpoints, and that m
 
 ## Download
 [Releases](https://github.com/SmoLL-iCe/VExDebug/releases)
+
+## How to use this?
+go to the releases part and download, attach the VExDebug dll form or imgui in the process you want to debug.
+use an injector for this.
+add the addresses you want to know who writes or accesses.
 
 ## What was used to compile?
 - __Use Visual Studio__ - ([Download](https://visualstudio.microsoft.com/pt-br/))
