@@ -265,7 +265,6 @@ namespace VExDebugform {
 			this->MaximizeBox = false;
 			this->Name = L"form_main";
 			this->Text = L"u";
-			this->Load += gcnew System::EventHandler( this, &form_main::Form_main_Load );
 			this->tab_page->ResumeLayout( false );
 			this->tp_1->ResumeLayout( false );
 			this->tp_2->ResumeLayout( false );
@@ -277,7 +276,6 @@ namespace VExDebugform {
 		}
 #pragma endregion
 	private: System::Void Button1_Click(System::Object^ sender, System::EventArgs^ e);
-	private: System::Void Form_main_Load(System::Object^ sender, System::EventArgs^ e);
 	private: System::Void Timer1_Tick(System::Object^ sender, System::EventArgs^ e);
 	private: System::Void button2_Click( System::Object^ sender, System::EventArgs^ e );
 };

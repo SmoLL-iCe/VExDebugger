@@ -17,7 +17,7 @@ BOOL __stdcall DllMain( HMODULE h_mod, DWORD ul_reason_for_call, LPVOID reversed
     {
     case DLL_PROCESS_ATTACH:
 		open_console("");
-		VExDebug::init();
+		//VExDebug::init();
     case DLL_THREAD_ATTACH:
     case DLL_THREAD_DETACH:
     case DLL_PROCESS_DETACH:

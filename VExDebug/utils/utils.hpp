@@ -1,4 +1,6 @@
 #pragma once
+#include "ntos.h"
+
 inline void display_context(PCONTEXT ContextRecord, PEXCEPTION_RECORD p_exception_record)
 {
 	printf("===> ExceptionAddress 0x%p\n", p_exception_record->ExceptionAddress);
@@ -112,4 +114,51 @@ inline void cls()
 	for (auto j = 0; j < 100; j++)
 		std::cout << std::string(100, ' ');
 	pos(0, 0);
+
+}
+
+inline ACCESS_MASK is_valid_handle( HANDLE h_handle )
+{
+	const auto b_ret = ( h_handle != nullptr && h_handle != INVALID_HANDLE_VALUE );
+	if ( b_ret )
+	{
+		OBJECT_BASIC_INFORMATION obj_info = { 0 };
+		DWORD ret_len = 0;
+		if ( NtQueryObject( h_handle, ObjectBasicInformation, &obj_info, sizeof OBJECT_BASIC_INFORMATION, &ret_len ) == 0 )
+			return obj_info.GrantedAccess;
+	}
+	return 0;
+}
+
+inline HANDLE open_thread( ACCESS_MASK am_desired_access, uintptr_t thread_id )
+{
+	HANDLE h_thread = nullptr;
+	CLIENT_ID pid = { nullptr, r_cast<HANDLE>( thread_id ) };
+	OBJECT_ATTRIBUTES obj_att = { sizeof OBJECT_ATTRIBUTES };
+	NtOpenThread( &h_thread, am_desired_access, &obj_att, &pid );
+	return h_thread;
+}
+
+inline bool get_context_thread( HANDLE h_thread, PCONTEXT p_context )
+{
+	return ( NtGetContextThread( h_thread, p_context ) == 0 );
+}
+
+inline bool set_context_thread( HANDLE h_thread, PCONTEXT p_context )
+{
+	return ( NtSetContextThread( h_thread, p_context ) == 0 );
+}
+
+inline uint32_t suspend_thread( HANDLE h_thread )
+{
+	ULONG suspend_count = -1;
+	NtSuspendThread( h_thread, &suspend_count );
+	return suspend_count;
+}
+
+inline uint32_t resume_thread( HANDLE h_thread )
+{
+	ULONG suspend_count = -1;
+	NtResumeThread( h_thread, &suspend_count );
+	return suspend_count;
 }

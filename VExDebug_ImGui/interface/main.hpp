@@ -54,7 +54,6 @@ namespace gui
 	inline void draw_login( gl_window* instance, bool * visible )
 	{
         static bool once = true;
-        static ImFont* font_1 = nullptr;
         if ( once )
         {
             once = false;
@@ -80,10 +79,9 @@ namespace gui
             ImGui::PushStyleVar( ImGuiStyleVar_ChildRounding, 3.0f );
             ImGui::PushStyleVar( ImGuiStyleVar_Alpha, 1.0f );
             ImGui::BeginChild( "#panel", { instance->get_size( ).x - 16.f, 350.f }, true );
-            ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
+            const ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
             if ( ImGui::BeginTabBar( "#TabBar", tab_bar_flags ) )
             {
-                std::string save_logs_str;
                 auto inc = 0;
                 for ( const auto& exp_assoc : VExDebug::get_exp_assoc_address( ) )
                 //for ( const auto& exp_assoc : exp_assoc_a )
@@ -99,9 +97,11 @@ namespace gui
                        
                         if ( ImGui::Button( ( "Remove " + hex_address ).c_str() , { 320.f, 25.f } ) )
                             VExDebug::remove_monitor_address( address );
-                        
+
+                        std::string save_logs_str;
                         if ( save_logs )
                             save_logs_str.append( "\n# List for " + hex_address + "\n" );
+
                         for ( const auto exp_info : exp_assoc.second )
                         {
                             ImGui::PushID( 18 * num_items );
@@ -120,13 +120,19 @@ namespace gui
                             ImGui::PopID( );
                             ++num_items;
                         }
+
+                        if ( save_logs )
+                        {
+                            utils::create_file_text( L"VExDebug_" + std::wstring( hex_address.begin(), hex_address.end() ) + L".log", save_logs_str );
+                            save_logs_str.clear( );
+                        }
+
                         ImGui::EndTabItem( );
                     }
                 }
                 if ( save_logs )
                 {
                     save_logs = false;
-                    utils::create_file_text( L"VExDebug.log", save_logs_str );
                 }
 
 
@@ -166,14 +172,19 @@ namespace gui
             ImGui::PopID( );
 
             ImGui::SameLine( 300.f );
-
+            static bool once_address = true;
+            if ( once_address )
+            {
+                once_address = false;
+               // VExDebug::start_monitor_address( (uintptr_t)GetModuleHandle(nullptr) + 0x519198, static_cast<hw_brk_type>( 1 ), static_cast<hw_brk_size>( 0 ) );
+            }
             if ( ImGui::Button( "Add", { 60.f, 20.f } ) )
             {
                 std::string str_address( buff_address );   
                 if ( utils::is_valided_hex( str_address ) )
                 {
-                    auto result_convert = ( ( sizeof uintptr_t ) < 8 ) ?
-                        uintptr_t( strtoul( str_address.c_str( ), nullptr, 16 ) ) : uintptr_t( strtoull( str_address.c_str( ), nullptr, 16 ) );
+	                const auto result_convert = ( ( sizeof uintptr_t ) < 8 ) ?
+		                                            static_cast<uintptr_t>(strtoul(str_address.c_str(), nullptr, 16)) : static_cast<uintptr_t>(strtoull(str_address.c_str(), nullptr, 16));
                     if ( result_convert )
                         VExDebug::start_monitor_address( result_convert, static_cast<hw_brk_type>( type_current + 1 ), static_cast<hw_brk_size>( size_current ) );                    
                 }

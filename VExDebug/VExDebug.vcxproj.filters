@@ -21,8 +21,8 @@
     <Filter Include="VExDebug\utils">
       <UniqueIdentifier>{61550d37-7b00-4549-885c-4a4e2c9cde99}</UniqueIdentifier>
     </Filter>
-    <Filter Include="WinApiWrapper">
-      <UniqueIdentifier>{5f545f8b-eb97-4753-bb1d-d7ea4ecdad72}</UniqueIdentifier>
+    <Filter Include="veh">
+      <UniqueIdentifier>{0b69ead5-57b3-4367-a48c-f9dd06823f32}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -38,17 +38,17 @@
     <ClInclude Include="..\import\include\VExDebug.h">
       <Filter>VExDebug</Filter>
     </ClInclude>
-    <ClInclude Include="winapi_wrapper\nt_structs.h">
-      <Filter>WinApiWrapper</Filter>
-    </ClInclude>
-    <ClInclude Include="winapi_wrapper\nt_wrapper.h">
-      <Filter>WinApiWrapper</Filter>
-    </ClInclude>
-    <ClInclude Include="winapi_wrapper\winapi_wrapper.h">
-      <Filter>WinApiWrapper</Filter>
-    </ClInclude>
     <ClInclude Include="hwbkp\hw_bkp.h">
       <Filter>VExDebug\hwbkp</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\ntos.h">
+      <Filter>VExDebug\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="veh\VEH.h">
+      <Filter>veh</Filter>
+    </ClInclude>
+    <ClInclude Include="veh\veh_structs.hpp">
+      <Filter>veh</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -63,6 +63,9 @@
     </ClCompile>
     <ClCompile Include="VExDebug.cpp">
       <Filter>VExDebug</Filter>
+    </ClCompile>
+    <ClCompile Include="veh\VEH.cpp">
+      <Filter>veh</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

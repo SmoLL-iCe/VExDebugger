@@ -13,10 +13,8 @@ using namespace System::IO;
 #pragma warning(disable: 4793)
 #ifdef _WIN64
 #pragma comment(lib, "..\\import\\libs\\x64\\VExDebug.lib")
-#pragma comment(lib, "..\\import\\libs\\x64\\winapi_wrapper.lib")
 #else
 #pragma comment(lib, "..\\import\\libs\\x86\\VExDebug.lib")
-#pragma comment(lib, "..\\import\\libs\\x86\\winapi_wrapper.lib")
 #endif
 
 #include "../import/include/VExDebug.h"
@@ -125,10 +123,6 @@ System::Void form_main::button2_Click( System::Object^ sender, System::EventArgs
 	wt->Close( );
 }
 
-System::Void form_main::Form_main_Load(System::Object^ sender, System::EventArgs^ e)
-{
-	VExDebug::init( );
-}
 
 System::Void form_main::Timer1_Tick(System::Object^ sender, System::EventArgs^ e)
 {

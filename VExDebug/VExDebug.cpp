@@ -2,49 +2,61 @@
 #include "../import/include/VExDebug.h"
 #include "hwbkp/threads/threads.h"
 #include "utils/utils.hpp"
-#include "winapi_wrapper/winapi_wrapper.h"
 #include "hwbkp/hw_bkp.h"
-#define r_cast reinterpret_cast
+#include "veh/VEH.h"
 
-std::vector<uint32_t> threads_id = {};
-std::map<int, exp_address_count> exp_assoc_address = 
+std::vector<uint32_t> threads_id = { };
+std::map<int, exp_address_count> exp_assoc_address =
 {
-	{0, {}},
-	{2, {}},
-	{4, {}},
-	{8, {}}
+	{ 0, { } },
+	{ 2, { } },
+	{ 4, { } },
+	{ 8, { } }
 };
 
-std::map<int, uintptr_t> address_assoc_exp = 
+std::map<int, uintptr_t> address_assoc_exp =
 {
-	{0, 0},
-	{2, 0},
-	{4, 0},
-	{8, 0}
+	{ 0, 0 },
+	{ 2, 0 },
+	{ 4, 0 },
+	{ 8, 0 }
 };
 
 std::map<int, exp_address_count>& VExDebug::get_exp_assoc_address( )
-{ return exp_assoc_address; }
+{
+	return exp_assoc_address;
+}
 
 std::map<int, uintptr_t>& VExDebug::get_address_assoc_exp( )
-{ return address_assoc_exp; }
+{
+	return address_assoc_exp;
+}
 
+void* o_internal_handler = nullptr;
 long __stdcall internal_handler( EXCEPTION_POINTERS* p_exception_info )
 {
-	const auto p_context		= p_exception_info->ContextRecord;
-	const auto p_exception_rec	= p_exception_info->ExceptionRecord;
-	//display_context(p_context, p_exception_rec);
-	if ( p_exception_rec->ExceptionCode == EXCEPTION_SINGLE_STEP )
+	auto* const p_exception_rec = p_exception_info->ExceptionRecord;
+	if ( EXCEPTION_BREAKPOINT != p_exception_rec->ExceptionCode )
 	{
-		auto const bit_index = int( p_context->Dr6 & 0xE );
-		++exp_assoc_address[ bit_index ][ p_exception_rec->ExceptionAddress ];
+		auto* const p_context = p_exception_info->ContextRecord;
+		//display_context(p_context, p_exception_rec);
+		if ( p_exception_rec->ExceptionCode == EXCEPTION_SINGLE_STEP )
+		{
+			auto const bit_index = s_cast<int>( p_context->Dr6 & 0xE );
+			++exp_assoc_address[ bit_index ][ p_exception_rec->ExceptionAddress ];
+			return EXCEPTION_CONTINUE_EXECUTION;
+		}
 		return EXCEPTION_CONTINUE_EXECUTION;
 	}
-	return EXCEPTION_CONTINUE_EXECUTION;
+
+	if ( o_internal_handler )
+		return reinterpret_cast<decltype( internal_handler )*>( o_internal_handler )( p_exception_info );
+
+	return EXCEPTION_EXECUTE_HANDLER;
 }
 
 void* p_VExDebug = nullptr;
-std::vector<hw_bkp*> address_added = {};
+std::vector<hw_bkp*> address_added = { };
 void dos_update( )
 {
 	threads::update_threads( );
@@ -69,8 +81,8 @@ void dos_update( )
 			}
 		if ( to_add )
 		{
-			for ( auto added : address_added )
-				if ( wrap::is_valid_handle( thread.second ) )
+			for ( auto* added : address_added )
+				if ( is_valid_handle( thread.second ) )
 				{
 					added->apply_debug_control( thread.second, true );
 				}
@@ -81,9 +93,10 @@ void dos_update( )
 
 bool VExDebug::start_monitor_address( const uintptr_t address, const hw_brk_type type, const hw_brk_size size )
 {
-	if ( !p_VExDebug )
+	VEH_internal::HookVEHHandlers( internal_handler, o_internal_handler );
+	//if ( !p_VExDebug )
 		//p_VExDebug = SetUnhandledExceptionFilter(internal_handler);
-		p_VExDebug = wrap::add_veh( 1, internal_handler );
+		//p_VExDebug = RtlAddVectoredExceptionHandler( 1, internal_handler );
 	dos_update( );
 	if ( threads_id.empty( ) )
 		return false;
@@ -93,13 +106,13 @@ bool VExDebug::start_monitor_address( const uintptr_t address, const hw_brk_type
 	{
 		if ( thread_id == GetCurrentThreadId( ) )
 			continue;
-		const auto h_thread = threads::get_thread_list( )[ thread_id ];
-		if ( wrap::is_valid_handle( h_thread ) )
+		auto* const h_thread = threads::get_thread_list( )[ thread_id ];
+		if ( is_valid_handle( h_thread ) )
 		{
 			if ( !hw_bkp::i( )->apply_debug_control( h_thread ) )
 				++fail_count;
 		}
-		else printf( "fail open thread_id[%u], status: 0x%X\n", thread_id, wrap::get_status( ) );
+		else printf( "fail open thread_id[%u]\n", thread_id );
 	}
 
 	for ( auto& address_assoc : address_assoc_exp )
@@ -116,7 +129,7 @@ void VExDebug::remove_monitor_address( const uintptr_t  address )
 {
 	hw_bkp* hw_bkp_remove = nullptr;
 	auto i_remove_hw = -1;
-	for ( auto p_hw_bkp : address_added )
+	for ( auto* p_hw_bkp : address_added )
 	{
 		++i_remove_hw;
 		if ( p_hw_bkp->get_address( ) == address )
@@ -130,7 +143,7 @@ void VExDebug::remove_monitor_address( const uintptr_t  address )
 		hw_bkp_remove->add_bkp( ) = false;
 		for ( auto thread_id : threads_id )
 		{
-			const auto h_thread = threads::get_thread_list( )[ thread_id ];
+			auto* const h_thread = threads::get_thread_list( )[ thread_id ];
 			hw_bkp_remove->apply_debug_control( h_thread );
 		}
 		for ( auto& address_assoc : address_assoc_exp )
@@ -148,7 +161,7 @@ void VExDebug::print_exceptions( )
 {
 	for ( const auto& exp_assoc : VExDebug::get_exp_assoc_address( ) )
 	{
-		const auto ha_address = r_cast<void*>( VExDebug::get_address_assoc_exp( )[ exp_assoc.first ] );
+		auto* const ha_address = r_cast<void*>( VExDebug::get_address_assoc_exp( )[ exp_assoc.first ] );
 		printf( "# => Index: %d, Address: %p\n", exp_assoc.first, ha_address );
 
 		for ( const auto exp_info : exp_assoc.second )
@@ -157,27 +170,26 @@ void VExDebug::print_exceptions( )
 	}
 }
 
-auto base = r_cast<uint8_t*>(GetModuleHandle(nullptr)) + 0x1000;
-void main_thread()
+auto base = r_cast<uint8_t*>( GetModuleHandle( nullptr ) ) + 0x1000;
+void main_thread( )
 {
-	printf("load\n");
-	VExDebug::start_monitor_address(uintptr_t( base ), hw_brk_type::hw_brk_readwrite, hw_brk_size::hw_brk_size_1);
-	Sleep(5000);
-	for (const auto& exp_assoc : exp_assoc_address)
+	printf( "load\n" );
+	VExDebug::start_monitor_address( r_cast<uintptr_t>( base ), hw_brk_type::hw_brk_readwrite, hw_brk_size::hw_brk_size_1 );
+	Sleep( 5000 );
+	for ( const auto& exp_assoc : exp_assoc_address )
 	{
-		const auto ha_address = r_cast<void*>(address_assoc_exp[exp_assoc.first]);
-		if (!ha_address || exp_assoc.second.empty())
+		auto* const ha_address = r_cast<void*>( address_assoc_exp[ exp_assoc.first ] );
+		if ( !ha_address || exp_assoc.second.empty( ) )
 			continue;
-		printf("== address %p, index %u\n", ha_address, exp_assoc.first);
-		for (const auto exp_info : exp_assoc.second)
-			printf("===> Exception in: %p, count: %d\n", exp_info.first, exp_info.second);
-		printf("*********************************************\n");
+		printf( "== address %p, index %u\n", ha_address, exp_assoc.first );
+		for ( const auto exp_info : exp_assoc.second )
+			printf( "===> Exception in: %p, count: %d\n", exp_info.first, exp_info.second );
+		printf( "*********************************************\n" );
 	}
 }
 
 void VExDebug::init( )
 {
-	wrap::ini_import( import_type::direct_address );
 	//wrap::create_thread_ex( r_cast<HANDLE>(-1), r_cast<void*>( main_thread ), nullptr, nullptr );
 }
 

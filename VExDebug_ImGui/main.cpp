@@ -6,11 +6,13 @@
 int main()
 {
 	std::cout << "initialized-\n";
-	VExDebug::init( );
     gui::init( );
     gui::set_frame( 0 );
 	std::cout << "close\n";
-	return getchar( );
+
+	//return getchar( );
+
+
 }
 
 void open_console( const std::string& title )
@@ -23,14 +25,16 @@ void open_console( const std::string& title )
 	SetConsoleTitleA( title.c_str( ) );
 }
 
+
 BOOL __stdcall DllMain( HMODULE h_module, DWORD  ul_reason_for_call, LPVOID reserved )
 {
 	UNREFERENCED_PARAMETER( h_module ); UNREFERENCED_PARAMETER( reserved );
 	switch ( ul_reason_for_call )
 	{
 	case DLL_PROCESS_ATTACH:
-		open_console( "" );
-		main( );
+		//open_console( "" );
+		CreateThread( nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>( main ), nullptr, 0, nullptr );
+		//main( );
 	case DLL_THREAD_ATTACH:
 	case DLL_THREAD_DETACH:
 	case DLL_PROCESS_DETACH:
