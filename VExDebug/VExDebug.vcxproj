@@ -29,31 +29,33 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\marmasm.props" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.props" />
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
@@ -104,7 +106,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;VEHDLL_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <FunctionLevelLinking>true</FunctionLevelLinking>
     </ClCompile>
@@ -124,7 +126,7 @@
       <PreprocessorDefinitions>_DEBUG;VEHDLL_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <FunctionLevelLinking>true</FunctionLevelLinking>
     </ClCompile>
@@ -181,22 +183,41 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\import\include\VExDebug.h" />
-    <ClInclude Include="framework.h" />
-    <ClInclude Include="hwbkp\hw_bkp.h" />
-    <ClInclude Include="hwbkp\threads\threads.h" />
-    <ClInclude Include="utils\ntos.h" />
-    <ClInclude Include="utils\utils.hpp" />
+    <ClInclude Include="Config\Config.h" />
+    <ClInclude Include="Headers\Header.h" />
+    <ClInclude Include="Headers\LogsException.hpp" />
+    <ClInclude Include="HwBkp\HwBkp.h" />
+    <ClInclude Include="HwBkp\Threads\ManagerThreads.h" />
+    <ClInclude Include="Tools\Logs.h" />
+    <ClInclude Include="Tools\ntos.h" />
+    <ClInclude Include="Tools\WinWrap.h" />
     <ClInclude Include="veh\VEH.h" />
-    <ClInclude Include="veh\veh_structs.hpp" />
+    <ClInclude Include="veh\Structs.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Config\Config.cpp" />
     <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="hwbkp\hw_bkp.cpp" />
-    <ClCompile Include="hwbkp\threads\threads.cpp" />
+    <ClCompile Include="HwBkp\HwBkp.cpp" />
+    <ClCompile Include="HwBkp\Threads\ManagerThreads.cpp" />
+    <ClCompile Include="Tools\Logs.cpp" />
+    <ClCompile Include="Tools\WinWrap.cpp" />
     <ClCompile Include="veh\VEH.cpp" />
     <ClCompile Include="VExDebug.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <MASM Include="veh\vex64.asm">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <FileType>Document</FileType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</DeploymentContent>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</DeploymentContent>
+    </MASM>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\marmasm.targets" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.targets" />
   </ImportGroup>
 </Project>

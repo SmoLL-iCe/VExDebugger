@@ -1,7 +1,7 @@
 #pragma once
 
 // for test
-std::map<int, exp_address_count> exp_assoc_a =
+std::map<int, ExceptionAddressCount> exp_assoc_a =
 {
     {0, { 
     { reinterpret_cast<void*>( 0x111111 ), 145 }, 
@@ -83,10 +83,10 @@ namespace gui
             if ( ImGui::BeginTabBar( "#TabBar", tab_bar_flags ) )
             {
                 auto inc = 0;
-                for ( const auto& exp_assoc : VExDebug::get_exp_assoc_address( ) )
+                for ( const auto& exp_assoc : VExDebug::GetExceptionAssocAddress( ) )
                 //for ( const auto& exp_assoc : exp_assoc_a )
                 {
-                    const auto address = VExDebug::get_address_assoc_exp( )[ exp_assoc.first ];
+                    const auto address = VExDebug::GetAddressAssocException( )[ exp_assoc.first ];
                     //const auto address = address_assoc_e[ exp_assoc.first ];
                     if ( !address )
                         continue;
@@ -96,7 +96,7 @@ namespace gui
                         auto num_items = exp_assoc.first;
                        
                         if ( ImGui::Button( ( "Remove " + hex_address ).c_str() , { 320.f, 25.f } ) )
-                            VExDebug::remove_monitor_address( address );
+                            VExDebug::RemoveMonitorAddress( address );
 
                         std::string save_logs_str;
                         if ( save_logs )
@@ -183,10 +183,10 @@ namespace gui
                 std::string str_address( buff_address );   
                 if ( utils::is_valided_hex( str_address ) )
                 {
-	                const auto result_convert = ( ( sizeof uintptr_t ) < 8 ) ?
-		                                            static_cast<uintptr_t>(strtoul(str_address.c_str(), nullptr, 16)) : static_cast<uintptr_t>(strtoull(str_address.c_str(), nullptr, 16));
+                    const auto result_convert = ( ( sizeof uintptr_t ) < 8 ) ?
+                        static_cast<uintptr_t>( strtoul( str_address.c_str( ), nullptr, 16 ) ) : static_cast<uintptr_t>( strtoull( str_address.c_str( ), nullptr, 16 ) );
                     if ( result_convert )
-                        VExDebug::start_monitor_address( result_convert, static_cast<hw_brk_type>( type_current + 1 ), static_cast<hw_brk_size>( size_current ) );                    
+                        VExDebug::StartMonitorAddress( result_convert, static_cast<HwbkpType>( type_current + 1 ), static_cast<HwbkpSize>( size_current ) );
                 }
             }
             ImGui::NewLine();

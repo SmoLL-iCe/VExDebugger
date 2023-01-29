@@ -1,12 +1,15 @@
-#include "framework.h"
+#include "Headers/Header.h"
 #include "../import/include/VExDebug.h"
-#include "hwbkp/threads/threads.h"
-#include "utils/utils.hpp"
-#include "hwbkp/hw_bkp.h"
-#include "veh/VEH.h"
+#include "HwBkp/Threads/ManagerThreads.h"
+#include "HwBkp/HwBkp.h"
+#include "Veh/VEH.h"
+#include "Tools/WinWrap.h"
+#include "Tools/Logs.h"
+#include "Config/Config.h"
+#include "Headers/LogsException.hpp"
 
-std::vector<uint32_t> threads_id = { };
-std::map<int, exp_address_count> exp_assoc_address =
+std::vector<uint32_t> ThreadIdList = { };
+std::map<int, ExceptionAddressCount> ExceptionAssocAddressList =
 {
 	{ 0, { } },
 	{ 2, { } },
@@ -14,7 +17,7 @@ std::map<int, exp_address_count> exp_assoc_address =
 	{ 8, { } }
 };
 
-std::map<int, uintptr_t> address_assoc_exp =
+std::map<int, uintptr_t> AddressAssocExceptionList =
 {
 	{ 0, 0 },
 	{ 2, 0 },
@@ -22,174 +25,252 @@ std::map<int, uintptr_t> address_assoc_exp =
 	{ 8, 0 }
 };
 
-std::map<int, exp_address_count>& VExDebug::get_exp_assoc_address( )
+std::vector<HwBkp*> AddressAdded = { };
+
+std::map<int, ExceptionAddressCount>& VExDebug::GetExceptionAssocAddress( )
 {
-	return exp_assoc_address;
+	return ExceptionAssocAddressList;
 }
 
-std::map<int, uintptr_t>& VExDebug::get_address_assoc_exp( )
+std::map<int, uintptr_t>& VExDebug::GetAddressAssocException( )
 {
-	return address_assoc_exp;
+	return AddressAssocExceptionList;
 }
 
-void* o_internal_handler = nullptr;
-long __stdcall internal_handler( EXCEPTION_POINTERS* p_exception_info )
+void* p_VExDebug = nullptr;
+
+void* OriginalHandlerFilter = nullptr;
+
+long __stdcall HandlerFilter( EXCEPTION_POINTERS* pExceptionInfo )
 {
-	auto* const p_exception_rec = p_exception_info->ExceptionRecord;
-	if ( EXCEPTION_BREAKPOINT != p_exception_rec->ExceptionCode )
+	auto* const pExceptionRec	= pExceptionInfo->ExceptionRecord;
+
+	if ( EXCEPTION_SINGLE_STEP == pExceptionRec->ExceptionCode )
 	{
-		auto* const p_context = p_exception_info->ContextRecord;
-		//display_context(p_context, p_exception_rec);
-		if ( p_exception_rec->ExceptionCode == EXCEPTION_SINGLE_STEP )
+		auto* const pContext	= pExceptionInfo->ContextRecord;
+
+		auto const FlagPos		= s_cast<int>( pContext->Dr6 & 0xE );
+
+		for ( auto & EcxpAssc : ExceptionAssocAddressList )
 		{
-			auto const bit_index = s_cast<int>( p_context->Dr6 & 0xE );
-			++exp_assoc_address[ bit_index ][ p_exception_rec->ExceptionAddress ];
-			return EXCEPTION_CONTINUE_EXECUTION;
+			if ( EcxpAssc.first == FlagPos )
+			{
+				++EcxpAssc.second[ pExceptionRec->ExceptionAddress ];
+
+				if ( Config::i( )->m_Logs )
+				{
+					DisplayContextLogs( pContext, pExceptionRec );
+				}
+
+				return EXCEPTION_CONTINUE_EXECUTION;
+			}
 		}
-		return EXCEPTION_CONTINUE_EXECUTION;
 	}
 
-	if ( o_internal_handler )
-		return reinterpret_cast<decltype( internal_handler )*>( o_internal_handler )( p_exception_info );
+	if ( OriginalHandlerFilter )
+		return reinterpret_cast<decltype( HandlerFilter )*>( OriginalHandlerFilter )( pExceptionInfo );
 
 	return EXCEPTION_EXECUTE_HANDLER;
 }
 
-void* p_VExDebug = nullptr;
-std::vector<hw_bkp*> address_added = { };
-void dos_update( )
+void UpdateInfo( )
 {
-	threads::update_threads( );
-	const auto is_empty = threads_id.empty( );
-	for ( const auto& thread : threads::get_thread_list( ) )
+	MgrThreads::UpdateThreads( );
+
+	const auto IsEmptyThreadList = ThreadIdList.empty( );
+
+	for ( const auto& ThreadInfo : MgrThreads::GetThreadList( ) )
 	{
-		if ( thread.first == GetCurrentThreadId( ) )
+		if ( ThreadInfo.first == GetCurrentThreadId( ) )
 			continue;
-		if ( is_empty )
+
+		if ( IsEmptyThreadList )
 		{
-			threads_id.push_back( thread.first );
+			ThreadIdList.push_back( ThreadInfo.first );
+
 			continue;
 		}
-		if ( address_added.empty( ) )
+
+		if ( AddressAdded.empty( ) )
 			return;
-		auto to_add = true;
-		for ( auto thread_id : threads_id )
-			if ( thread.first == thread_id )
+
+		auto Add = true;
+
+		for ( auto ThreadId : ThreadIdList )
+			if ( ThreadInfo.first == ThreadId )
 			{
-				to_add = true;
+				Add = true;
+
 				break;
 			}
-		if ( to_add )
+
+		if ( Add )
 		{
-			for ( auto* added : address_added )
-				if ( is_valid_handle( thread.second ) )
+			for ( auto* Added : AddressAdded )
+				if ( WinWrap::IsValidHandle( ThreadInfo.second ) )
 				{
-					added->apply_debug_control( thread.second, true );
+					Added->ApplyHwbkpDebugConfig( ThreadInfo.second, ThreadInfo.first, true );
 				}
-			threads_id.push_back( thread.first );
+
+			ThreadIdList.push_back( ThreadInfo.first );
 		}
 	}
 }
 
-bool VExDebug::start_monitor_address( const uintptr_t address, const hw_brk_type type, const hw_brk_size size )
+bool VExDebug::StartMonitorAddress( const uintptr_t Address, const HwbkpType Type, const HwbkpSize Size )
 {
-	VEH_internal::HookVEHHandlers( internal_handler, o_internal_handler );
-	//if ( !p_VExDebug )
-		//p_VExDebug = SetUnhandledExceptionFilter(internal_handler);
-		//p_VExDebug = RtlAddVectoredExceptionHandler( 1, internal_handler );
-	dos_update( );
-	if ( threads_id.empty( ) )
+	UpdateInfo( );
+
+	if ( ThreadIdList.empty( ) )
 		return false;
-	auto fail_count = 0;
-	new hw_bkp( address, size, type );
-	for ( const auto& thread_id : threads_id )
+
+	auto FailCount = 0;
+
+	new HwBkp( Address, Size, Type );
+
+	for ( const auto& ThreadId : ThreadIdList )
 	{
-		if ( thread_id == GetCurrentThreadId( ) )
+		if ( ThreadId == GetCurrentThreadId( ) )
 			continue;
-		auto* const h_thread = threads::get_thread_list( )[ thread_id ];
-		if ( is_valid_handle( h_thread ) )
+
+		auto* const hThread = MgrThreads::GetThreadList( )[ ThreadId ];
+
+		if ( WinWrap::IsValidHandle( hThread ) )
 		{
-			if ( !hw_bkp::i( )->apply_debug_control( h_thread ) )
-				++fail_count;
+			if ( !HwBkp::i( )->ApplyHwbkpDebugConfig( hThread, ThreadId ) )
+				++FailCount;
 		}
-		else printf( "fail open thread_id[%u]\n", thread_id );
+		else log_file( "[-] Fail open ThreadId [%u]\n", ThreadId );
 	}
 
-	for ( auto& address_assoc : address_assoc_exp )
-		if ( !address_assoc.second )
+	for ( auto& AddressAssoc : AddressAssocExceptionList )
+		if ( !AddressAssoc.second )
 		{
-			address_assoc.second = address;
+			AddressAssoc.second = Address;
+
 			break;
 		}
-	address_added.push_back( hw_bkp::i( ) );
+
+	AddressAdded.push_back( HwBkp::i( ) );
+
 	return true;
 }
 
-void VExDebug::remove_monitor_address( const uintptr_t  address )
+void VExDebug::RemoveMonitorAddress( const uintptr_t Address )
 {
-	hw_bkp* hw_bkp_remove = nullptr;
-	auto i_remove_hw = -1;
-	for ( auto* p_hw_bkp : address_added )
+	HwBkp* HwbkpRemove		= nullptr;
+
+	auto IndexRemoveHwbkp	= -1;
+
+	for ( auto* pHwbkp : AddressAdded )
 	{
-		++i_remove_hw;
-		if ( p_hw_bkp->get_address( ) == address )
+		++IndexRemoveHwbkp;
+
+		if ( pHwbkp->GetAddress( ) == Address )
 		{
-			hw_bkp_remove = p_hw_bkp;
+			HwbkpRemove = pHwbkp;
+
 			break;
 		}
 	}
-	if ( hw_bkp_remove )
+
+	if ( HwbkpRemove )
 	{
-		hw_bkp_remove->add_bkp( ) = false;
-		for ( auto thread_id : threads_id )
+		HwbkpRemove->AddBkp( ) = false;
+
+		for ( auto ThreadId : ThreadIdList )
 		{
-			auto* const h_thread = threads::get_thread_list( )[ thread_id ];
-			hw_bkp_remove->apply_debug_control( h_thread );
+			auto* const hThread = MgrThreads::GetThreadList( )[ ThreadId ];
+
+			HwbkpRemove->ApplyHwbkpDebugConfig( hThread, ThreadId );
 		}
-		for ( auto& address_assoc : address_assoc_exp )
+
+		for ( auto& AddressAssoc : AddressAssocExceptionList )
 		{
-			if ( address_assoc.second != address )
+			if ( AddressAssoc.second != Address )
 				continue;
-			address_assoc.second = 0;
-			exp_address_count( ).swap( exp_assoc_address[ address_assoc.first ] );
+
+			AddressAssoc.second = 0;
+
+			ExceptionAddressCount( ).swap( ExceptionAssocAddressList[ AddressAssoc.first ] );
 		}
-		address_added.erase( address_added.begin( ) + i_remove_hw );
+
+		AddressAdded.erase( AddressAdded.begin( ) + IndexRemoveHwbkp );
 	}
 }
 
-void VExDebug::print_exceptions( )
+void VExDebug::PrintExceptions( )
 {
-	for ( const auto& exp_assoc : VExDebug::get_exp_assoc_address( ) )
+	for ( const auto& EcxpAssoc : VExDebug::GetExceptionAssocAddress( ) )
 	{
-		auto* const ha_address = r_cast<void*>( VExDebug::get_address_assoc_exp( )[ exp_assoc.first ] );
-		printf( "# => Index: %d, Address: %p\n", exp_assoc.first, ha_address );
+		auto* const Address = r_cast<void*>( VExDebug::GetAddressAssocException( )[ EcxpAssoc.first ] );
 
-		for ( const auto exp_info : exp_assoc.second )
-			printf( "# === Count %d, Address: %p\n", exp_info.second, exp_info.first );
-		printf( "\n" );
+		log_file( "[#] => Index: %d, Address: %p", EcxpAssoc.first, Address );
+
+		for ( const auto EcxpInfo : EcxpAssoc.second )
+			log_file( "[#] === Count %d, Address: %p", EcxpInfo.second, EcxpInfo.first );
+
+		log_file( "\n" );
 	}
 }
 
-auto base = r_cast<uint8_t*>( GetModuleHandle( nullptr ) ) + 0x1000;
-void main_thread( )
+//auto base = r_cast<uint8_t*>( GetModuleHandle( nullptr ) ) + 0x1000;
+
+//void main_thread( )
+//{
+//	printf( "load\n" );
+//
+//	VExDebug::StartMonitorAddress( r_cast<uintptr_t>( base ), HwbkpType::ReadWrite, HwbkpSize::Size_1 );
+//
+//	Sleep( 5000 );
+//
+//	for ( const auto& exp_assoc : ExceptionAssocAddressList )
+//	{
+//		auto* const ha_address = r_cast<void*>( AddressAssocExceptionList[ exp_assoc.first ] );
+//
+//		if ( !ha_address || exp_assoc.second.empty( ) )
+//			continue;
+//
+//		printf( "== address %p, index %u\n", ha_address, exp_assoc.first );
+//
+//		for ( const auto exp_info : exp_assoc.second )
+//			printf( "===> Exception in: %p, count: %d\n", exp_info.first, exp_info.second );
+//
+//		printf( "*********************************************\n" );
+//	}
+//}
+
+bool VExDebug::Init( HandlerType Type, bool SpoofHwbkp, bool Logs )
 {
-	printf( "load\n" );
-	VExDebug::start_monitor_address( r_cast<uintptr_t>( base ), hw_brk_type::hw_brk_readwrite, hw_brk_size::hw_brk_size_1 );
-	Sleep( 5000 );
-	for ( const auto& exp_assoc : exp_assoc_address )
+	Config::i( )->m_HandlerType = Type;
+
+	Config::i( )->m_SpoofHwbkp	= SpoofHwbkp;
+
+	Config::i( )->m_Logs		= Logs;
+
+	if ( !WinWrap::Init( ) )
+		return false;
+
+	nLog::Init( );
+
+	switch ( Type )
 	{
-		auto* const ha_address = r_cast<void*>( address_assoc_exp[ exp_assoc.first ] );
-		if ( !ha_address || exp_assoc.second.empty( ) )
-			continue;
-		printf( "== address %p, index %u\n", ha_address, exp_assoc.first );
-		for ( const auto exp_info : exp_assoc.second )
-			printf( "===> Exception in: %p, count: %d\n", exp_info.first, exp_info.second );
-		printf( "*********************************************\n" );
+	case HandlerType::VectoredExceptionHandler:
+		p_VExDebug = RtlAddVectoredExceptionHandler( 1, HandlerFilter );
+		break;
+	case HandlerType::UnhandledExceptionFilter:
+		p_VExDebug = SetUnhandledExceptionFilter( HandlerFilter );
+		break;
+	case HandlerType::VectoredExceptionHandlerIntercept:
+		VEH_Internal::InterceptVEHHandler( HandlerFilter, OriginalHandlerFilter );
+		break;
+	case HandlerType::KiUserExceptionDispatcherHook:
+		VEH_Internal::HookKiUserExceptionDispatcher( HandlerFilter );
+		break;
+	default:
+		break;
 	}
-}
 
-void VExDebug::init( )
-{
-	//wrap::create_thread_ex( r_cast<HANDLE>(-1), r_cast<void*>( main_thread ), nullptr, nullptr );
+	return true;
 }
 

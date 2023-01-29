@@ -3,29 +3,42 @@
 #include <iostream>
 #include <map>
 
-using exp_address_count = std::map<void*, uint32_t>;
-enum class hw_brk_type
+using ExceptionAddressCount = std::map<void*, uint32_t>;
+
+enum class HwbkpType
 {
-	hw_brk_execute,
-	hw_brk_readwrite,
-	hw_brk_write
+	Execute,
+	ReadWrite,
+	Write
 };
 
-enum class hw_brk_size
+enum class HwbkpSize
 {
-	hw_brk_size_1,
-	hw_brk_size_2,
-	hw_brk_size_8,
-	hw_brk_size_4
+	Size_1,
+	Size_2,
+	Size_8,
+	Size_4
+};
+
+enum class HandlerType
+{
+	VectoredExceptionHandler,
+	UnhandledExceptionFilter,
+	VectoredExceptionHandlerIntercept,
+	KiUserExceptionDispatcherHook,
 };
 
 namespace VExDebug
 {
+	bool Init( HandlerType Type = HandlerType::VectoredExceptionHandler, bool SpoofHwbkp = false, bool Logs = false );
 
-	void init();
-	std::map<int, exp_address_count>& get_exp_assoc_address( );
-	std::map<int, uintptr_t>& get_address_assoc_exp( );
-	bool start_monitor_address(uintptr_t address, hw_brk_type type, hw_brk_size size);
-	void remove_monitor_address(uintptr_t  address);
-	void print_exceptions();
+	std::map<int, ExceptionAddressCount>& GetExceptionAssocAddress( );
+
+	std::map<int, uintptr_t>& GetAddressAssocException( );
+
+	bool StartMonitorAddress( uintptr_t Address, HwbkpType Type, HwbkpSize Size );
+	
+	void RemoveMonitorAddress( uintptr_t Address );
+	
+	void PrintExceptions( );
 }

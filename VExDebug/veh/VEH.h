@@ -1,7 +1,8 @@
 #pragma once
 #include <Windows.h>
 
-namespace VEH_internal 
+namespace VEH_Internal 
 {
-	void HookVEHHandlers( void* VectoredHandler, void*& orig_VectoredHandler );
+	bool InterceptVEHHandler( void* VectoredHandler, void*& orig_VectoredHandler );
+	bool HookKiUserExceptionDispatcher( void* MyVectoredHandler );
 }
