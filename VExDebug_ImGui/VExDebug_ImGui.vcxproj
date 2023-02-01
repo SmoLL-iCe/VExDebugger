@@ -235,28 +235,28 @@
     <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
     <IntDir>$(Configuration)\</IntDir>
     <IncludePath>$(IncludePath)</IncludePath>
-    <LibraryPath>ImGui\glfw_opengl3\libs\glfw\lib-vc2019-32;$(LibraryPath)</LibraryPath>
+    <LibraryPath>ImGui\glfw_opengl3\libs\glfw\dx86mt;$(LibraryPath)</LibraryPath>
     <TargetName>$(ProjectName)_x86</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
     <IntDir>$(Configuration)\</IntDir>
     <IncludePath>$(IncludePath)</IncludePath>
-    <LibraryPath>ImGui\glfw_opengl3\libs\glfw\lib-vc2019-64;$(LibraryPath)</LibraryPath>
+    <LibraryPath>ImGui\glfw_opengl3\libs\glfw\dx64mt;$(LibraryPath)</LibraryPath>
     <TargetName>$(ProjectName)_x64</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
     <IntDir>$(Configuration)\</IntDir>
     <IncludePath>$(IncludePath)</IncludePath>
-    <LibraryPath>ImGui\glfw_opengl3\libs\glfw\lib-vc2019-32;$(LibraryPath)</LibraryPath>
+    <LibraryPath>ImGui\glfw_opengl3\libs\glfw\rx86mt;$(LibraryPath)</LibraryPath>
     <TargetName>$(ProjectName)_x86</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
     <IntDir>$(Configuration)\</IntDir>
     <IncludePath>$(IncludePath)</IncludePath>
-    <LibraryPath>ImGui\glfw_opengl3\libs\glfw\lib-vc2019-64;$(LibraryPath)</LibraryPath>
+    <LibraryPath>ImGui\glfw_opengl3\libs\glfw\rx64mt;$(LibraryPath)</LibraryPath>
     <TargetName>$(ProjectName)_x64</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -269,6 +269,7 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <PreprocessorDefinitions>_DEBUG;_WINDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>false</ExceptionHandling>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -284,10 +285,11 @@
       <Optimization>MaxSpeed</Optimization>
       <AdditionalIncludeDirectories>ImGui\;ImGui\glfw_opengl3\libs\glfw\include;ImGui\glfw_opengl3\libs\gl3w;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <PreprocessorDefinitions>_DEBUG;_WINDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>false</ExceptionHandling>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -305,7 +307,8 @@
       <IntrinsicFunctions>false</IntrinsicFunctions>
       <AdditionalIncludeDirectories>ImGui\;ImGui\glfw_opengl3\libs\glfw\include;ImGui\glfw_opengl3\libs\gl3w;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>false</BufferSecurityCheck>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <ExceptionHandling>false</ExceptionHandling>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -327,7 +330,8 @@
       <AdditionalIncludeDirectories>ImGui\;ImGui\glfw_opengl3\libs\glfw\include;ImGui\glfw_opengl3\libs\gl3w;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <WholeProgramOptimization>true</WholeProgramOptimization>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <ExceptionHandling>false</ExceptionHandling>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>

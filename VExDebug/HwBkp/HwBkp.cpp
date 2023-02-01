@@ -4,6 +4,10 @@
 #include "../Tools/Logs.h"
 #include "../Tools/WinWrap.h"
 
+
+#define SET_TRAP_FLAG(ctx) ctx->EFlags |= (1 << 8);
+#define UNSET_TRAP_FLAG(ctx) ctx->EFlags &= ~(1 << 8);
+
 HwBkp* g_CurrentHwBreakPt = nullptr;
 
 HwBkp::HwBkp( const uintptr_t Address, const HwbkpSize Size, const HwbkpType Type, const bool Add )
@@ -92,7 +96,7 @@ bool HwBkp::ApplyHwbkpDebugConfig( const HANDLE hThread, uint32_t ThreadId, bool
 	{ // Remove
 
 		for ( auto i = 0, fPos = 0; i < 4; i++, fPos = i * 2 )
-			if ( DbgRegBusy == i )
+			if ( DbgRegAvailable == i )
 			{
 				bFlagPos		= fPos;
 
@@ -110,14 +114,14 @@ bool HwBkp::ApplyHwbkpDebugConfig( const HANDLE hThread, uint32_t ThreadId, bool
 		auto FindEmptyDr			= useExisting;
 
 		if ( useExisting )
-			pDbgReg[ DbgRegBusy ]	= Address; //replace existing
+			pDbgReg[ DbgRegAvailable ]	= Address; //replace existing
 		else
 			for ( auto i = 0; i < 4; i++ )
 				if ( !DrBusy[ i ] )
 				{
 					FindEmptyDr			= true;
 
-					DbgRegBusy		= i;
+					DbgRegAvailable		= i;
 
 					pDbgReg[ i ]	= Address;
 
@@ -131,30 +135,30 @@ bool HwBkp::ApplyHwbkpDebugConfig( const HANDLE hThread, uint32_t ThreadId, bool
 			return false;
 		}
 
-		Ctx.Dr6			= 0;
+		Ctx.Dr6				= 0;
 
-		auto ModeDbg	= 0;
+		auto DbgCondition	= 0;
 
 		switch ( Type )
 		{
 		case HwbkpType::Execute:
-			ModeDbg = 0;
+			DbgCondition	= 0;
 			break;
 		case HwbkpType::ReadWrite:
-			ModeDbg = 3;
+			DbgCondition	= 3;
 			break;
 		case HwbkpType::Write:
-			ModeDbg = 1;
+			DbgCondition	= 1;
 			break;
 		}
 
-		const auto eSize = s_cast<int>( Size );
+		const auto eSize	= s_cast<int>( Size );
 
-		setBits( Ctx.Dr7, 16 + DbgRegBusy * 4, 2, ModeDbg );	// set dbg type
+		setBits( Ctx.Dr7, 16 + DbgRegAvailable * 4, 2, DbgCondition );	// set dbg type
 
-		setBits( Ctx.Dr7, 18 + DbgRegBusy * 4, 2, eSize );		// set dbg data size
+		setBits( Ctx.Dr7, 18 + DbgRegAvailable * 4, 2, eSize		);	// set dbg data size
 
-		setBits( Ctx.Dr7, DbgRegBusy * 2, 1, 1 );
+		setBits( Ctx.Dr7, DbgRegAvailable * 2, 1, 1 );
 	}
 
 	Ctx.ContextFlags = CONTEXT_DEBUG_REGISTERS;

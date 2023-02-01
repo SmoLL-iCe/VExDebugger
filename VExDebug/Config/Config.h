@@ -12,6 +12,4 @@ public:
 
 	HandlerType m_HandlerType	= HandlerType::VectoredExceptionHandler;
 
-private:
-
 };

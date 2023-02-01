@@ -11,7 +11,7 @@ private:
 
 	HwbkpSize Size			= HwbkpSize::Size_1;
 
-	intptr_t DbgRegBusy		= 0; //max 4
+	intptr_t DbgRegAvailable		= 0; //max 4
 
 	bool Add				= true;
 

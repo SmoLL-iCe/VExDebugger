@@ -8,8 +8,6 @@
 #ifndef _DEBUG
 int main( void* address )
 {
-
-	//VExDebug::start_monitor_address( uintptr_t( address ), hw_brk_type::hw_brk_readwrite, hw_brk_size::hw_brk_size_1 );
 	std::cout << "initialized-\n";
     gui::init( );
     gui::set_frame( 0 );
@@ -36,13 +34,11 @@ BOOL __stdcall DllMain( HMODULE h_module, DWORD  ul_reason_for_call, LPVOID rese
 	switch ( ul_reason_for_call )
 	{
 	case DLL_PROCESS_ATTACH:
-		open_console( "" );
-		VExDebug::Init( );
+		//open_console( "" );
+		VExDebug::Init( HandlerType::VectoredExceptionHandler, false, true );
 #ifndef _DEBUG
 		CreateThread( nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>( main ), h_module, 0, nullptr );
 #endif // DEBUG
-		//MessageBoxA( 0, "a", "4", 0 );
-		//main( );
 		break;
 	case DLL_THREAD_ATTACH:
 	case DLL_THREAD_DETACH:

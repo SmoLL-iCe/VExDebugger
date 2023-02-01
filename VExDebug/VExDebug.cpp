@@ -43,25 +43,42 @@ void* OriginalHandlerFilter = nullptr;
 
 long __stdcall HandlerFilter( EXCEPTION_POINTERS* pExceptionInfo )
 {
+	auto* const pContext		= pExceptionInfo->ContextRecord;
+
 	auto* const pExceptionRec	= pExceptionInfo->ExceptionRecord;
 
-	if ( EXCEPTION_SINGLE_STEP == pExceptionRec->ExceptionCode )
-	{
-		auto* const pContext	= pExceptionInfo->ContextRecord;
+	//DisplayContextLogs( pContext, pExceptionRec ); // tests
 
-		auto const FlagPos		= s_cast<int>( pContext->Dr6 & 0xE );
+	constexpr auto STATUS_WX86_SINGLE_STEP = 0x4000001E; // CE check this old flag too
+
+	if ( EXCEPTION_SINGLE_STEP == pExceptionRec->ExceptionCode || 
+		STATUS_WX86_SINGLE_STEP == pExceptionRec->ExceptionCode )
+	{
+		// to identify which order address was triggered
+		auto const FlagPos		= s_cast<int>( pContext->Dr6 & 0xE ); // result vals, 0 / 2 / 4 / 6
+		
+		int e = -1;
 
 		for ( auto & EcxpAssc : ExceptionAssocAddressList )
 		{
-			if ( EcxpAssc.first == FlagPos )
+			if ( 
+				( pContext->Dr6 & ( static_cast<uintptr_t>( 1 ) << ++e ) ) != 0 && // check if this position was setted
+				EcxpAssc.first == FlagPos ) // confirm if was the same pos
 			{
-				++EcxpAssc.second[ pExceptionRec->ExceptionAddress ];
+				pContext->Dr6				= 0xFFFF0FF0; // reset switch
+
+				// if it's doesnt have this address, add or update info
+				auto& CatchInfo				= EcxpAssc.second[ pExceptionRec->ExceptionAddress ];
+
+				++CatchInfo.Count;										// inc occurrences
+
+				CatchInfo.ThreadId			= GetCurrentThreadId( );	// last thread triggered
+
+				CatchInfo.Ctx				= *pContext;				// save context
 
 				if ( Config::i( )->m_Logs )
-				{
-					DisplayContextLogs( pContext, pExceptionRec );
-				}
-
+					DisplayContextLogs( pContext, pExceptionRec ); // save in txt
+				
 				return EXCEPTION_CONTINUE_EXECUTION;
 			}
 		}
@@ -213,32 +230,6 @@ void VExDebug::PrintExceptions( )
 		log_file( "\n" );
 	}
 }
-
-//auto base = r_cast<uint8_t*>( GetModuleHandle( nullptr ) ) + 0x1000;
-
-//void main_thread( )
-//{
-//	printf( "load\n" );
-//
-//	VExDebug::StartMonitorAddress( r_cast<uintptr_t>( base ), HwbkpType::ReadWrite, HwbkpSize::Size_1 );
-//
-//	Sleep( 5000 );
-//
-//	for ( const auto& exp_assoc : ExceptionAssocAddressList )
-//	{
-//		auto* const ha_address = r_cast<void*>( AddressAssocExceptionList[ exp_assoc.first ] );
-//
-//		if ( !ha_address || exp_assoc.second.empty( ) )
-//			continue;
-//
-//		printf( "== address %p, index %u\n", ha_address, exp_assoc.first );
-//
-//		for ( const auto exp_info : exp_assoc.second )
-//			printf( "===> Exception in: %p, count: %d\n", exp_info.first, exp_info.second );
-//
-//		printf( "*********************************************\n" );
-//	}
-//}
 
 bool VExDebug::Init( HandlerType Type, bool SpoofHwbkp, bool Logs )
 {

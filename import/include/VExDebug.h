@@ -2,8 +2,16 @@
 #include <Windows.h>
 #include <iostream>
 #include <map>
+#include <unordered_map>
 
-using ExceptionAddressCount = std::map<void*, uint32_t>;
+struct CatchedDetails
+{
+	size_t Count		= 0;
+	size_t ThreadId		= 0;
+	CONTEXT Ctx			= {};
+};
+
+using ExceptionAddressCount = std::unordered_map<void*, CatchedDetails>;
 
 enum class HwbkpType
 {
