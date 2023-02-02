@@ -44,6 +44,8 @@
 *.ipdb
 *.ilk
 *.idb
+*.recipe
+*.cache
 VExDebugger_form/Debug/.NETFramework,Version=v4.5.AssemblyAttributes.cpp
 *.cache
 *.resources
@@ -53,4 +55,6 @@ VExDebugger_form/Release/.NETFramework,Version=v4.5.AssemblyAttributes.cpp
 .vs
 Release
 Debug
+ReleaseMD
+DebugMD
 
