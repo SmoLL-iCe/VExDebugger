@@ -1,0 +1,121 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="ImGui">
+      <UniqueIdentifier>{20b90ce4-7fcb-4731-b9a0-075f875de82d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ImGui\glfw_opengl3">
+      <UniqueIdentifier>{ea1d39f3-47bb-435f-a862-b8a6d6e384fb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ImGui\libs">
+      <UniqueIdentifier>{9135ade3-0989-4855-971f-c46ea9c94472}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{3ed10aed-6850-4404-aed1-06909ae841cf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Interface">
+      <UniqueIdentifier>{0759a0aa-037a-4377-9714-aaf64370741b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utils">
+      <UniqueIdentifier>{53ab7542-29b5-4531-be5f-17646356f106}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ImGui\imconfig.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imgui.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imgui_internal.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imstb_rectpack.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imstb_textedit.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imstb_truetype.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\glfw_opengl3\imgui_impl_glfw.h">
+      <Filter>ImGui\glfw_opengl3</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\glfw_opengl3\imgui_impl_opengl3.h">
+      <Filter>ImGui\glfw_opengl3</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\glfw_opengl3\libs\glfw\include\GLFW\glfw3.h">
+      <Filter>ImGui\libs</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\glfw_opengl3\libs\glfw\include\GLFW\glfw3native.h">
+      <Filter>ImGui\libs</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\glfw_opengl3\libs\gl3w\GL\gl3w.h">
+      <Filter>ImGui\libs</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\glfw_opengl3\libs\gl3w\GL\glcorearb.h">
+      <Filter>ImGui\libs</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\stb_image.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\json.hpp">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="header.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\CreateWindow.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\Interface.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\CustomConfig.hpp">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\Utils.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\MainWin.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="ImGui\imgui.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui_demo.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui_draw.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui_widgets.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="ImGui\glfw_opengl3\imgui_impl_glfw.cpp">
+      <Filter>ImGui\glfw_opengl3</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\glfw_opengl3\imgui_impl_opengl3.cpp">
+      <Filter>ImGui\glfw_opengl3</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\glfw_opengl3\libs\gl3w\GL\gl3w.c">
+      <Filter>ImGui\libs</Filter>
+    </ClCompile>
+    <ClCompile Include="interface\CreateWindow.cpp">
+      <Filter>Interface</Filter>
+    </ClCompile>
+    <ClCompile Include="interface\Interface.cpp">
+      <Filter>Interface</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\Utils.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Interface\MainWin.cpp">
+      <Filter>Interface</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

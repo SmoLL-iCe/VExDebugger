@@ -1,0 +1,97 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="VExDebugger">
+      <UniqueIdentifier>{280d33bd-45f5-4288-9af2-082aaa324d50}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Entry">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="VExDebugger\HwBkp">
+      <UniqueIdentifier>{4400b40b-7faf-4852-8339-315f52f158f8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="VExDebugger\HwBkp\Threads">
+      <UniqueIdentifier>{a011e293-65c9-4d85-8b1e-6c8e506fa488}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="VExDebugger\Config">
+      <UniqueIdentifier>{5b7f3c64-61f1-4990-b1b3-b788fa719a27}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="VExDebugger\Tools">
+      <UniqueIdentifier>{994b3284-0107-46ba-b63e-48e550ea151f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="VExDebugger\Veh">
+      <UniqueIdentifier>{0b69ead5-57b3-4367-a48c-f9dd06823f32}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\import\include\VExDebugger.h">
+      <Filter>VExDebugger</Filter>
+    </ClInclude>
+    <ClInclude Include="veh\VEH.h">
+      <Filter>VExDebugger\Veh</Filter>
+    </ClInclude>
+    <ClInclude Include="veh\Structs.hpp">
+      <Filter>VExDebugger\Veh</Filter>
+    </ClInclude>
+    <ClInclude Include="Tools\Logs.h">
+      <Filter>VExDebugger\Tools</Filter>
+    </ClInclude>
+    <ClInclude Include="Tools\ntos.h">
+      <Filter>VExDebugger\Tools</Filter>
+    </ClInclude>
+    <ClInclude Include="Tools\WinWrap.h">
+      <Filter>VExDebugger\Tools</Filter>
+    </ClInclude>
+    <ClInclude Include="HwBkp\Threads\ManagerThreads.h">
+      <Filter>VExDebugger\HwBkp\Threads</Filter>
+    </ClInclude>
+    <ClInclude Include="HwBkp\HwBkp.h">
+      <Filter>VExDebugger\HwBkp</Filter>
+    </ClInclude>
+    <ClInclude Include="Config\Config.h">
+      <Filter>VExDebugger\Config</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Header.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\LogsException.hpp">
+      <Filter>Headers</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="dllmain.cpp">
+      <Filter>Entry</Filter>
+    </ClCompile>
+    <ClCompile Include="VExDebugger.cpp">
+      <Filter>VExDebugger</Filter>
+    </ClCompile>
+    <ClCompile Include="veh\VEH.cpp">
+      <Filter>VExDebugger\Veh</Filter>
+    </ClCompile>
+    <ClCompile Include="Tools\Logs.cpp">
+      <Filter>VExDebugger\Tools</Filter>
+    </ClCompile>
+    <ClCompile Include="Tools\WinWrap.cpp">
+      <Filter>VExDebugger\Tools</Filter>
+    </ClCompile>
+    <ClCompile Include="HwBkp\Threads\ManagerThreads.cpp">
+      <Filter>VExDebugger\HwBkp\Threads</Filter>
+    </ClCompile>
+    <ClCompile Include="HwBkp\HwBkp.cpp">
+      <Filter>VExDebugger\HwBkp</Filter>
+    </ClCompile>
+    <ClCompile Include="Config\Config.cpp">
+      <Filter>VExDebugger\Config</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <MASM Include="veh\vex64.asm">
+      <Filter>VExDebugger\Veh</Filter>
+    </MASM>
+  </ItemGroup>
+</Project>
