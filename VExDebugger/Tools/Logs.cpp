@@ -7,21 +7,22 @@
 
 bool DeleteFileF( )
 {
-	UNICODE_STRING		uni_name = { 0 };
+	UNICODE_STRING		UniName = { 0 };
 
-	OBJECT_ATTRIBUTES	obj_attr = { 0 };
+	OBJECT_ATTRIBUTES	ObjAttr = { 0 };
 
-	RtlInitUnicodeString( &uni_name, DEFAULT_LOG_FILE_NAME );
+	RtlInitUnicodeString( &UniName, DEFAULT_LOG_FILE_NAME );
 
-	InitializeObjectAttributes( &obj_attr, &uni_name, OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE, nullptr, nullptr );
+	InitializeObjectAttributes( &ObjAttr, &UniName, OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE, nullptr, nullptr );
 
-	auto r = NtDeleteFile( &obj_attr ) == 0;
-
-	return r;
+	return NtDeleteFile( &ObjAttr ) == 0;
 }
 
 bool nLog::Init( )
 {
+	if ( !Config::i( )->m_Logs )
+		return false;
+
 	return DeleteFileF( );
 }
 
@@ -32,33 +33,39 @@ bool nLog::file_n( const char* sText )
 
 	//printf( sText );
 
-	IO_STATUS_BLOCK  IoStatus;
-	OBJECT_ATTRIBUTES objectAttributes;
-	HANDLE FileHandle;
-	UNICODE_STRING fileName;
+	IO_STATUS_BLOCK		IoStatus{};
 
-	fileName.Buffer = nullptr;
-	fileName.Length = 0;
-	fileName.MaximumLength = sizeof( DEFAULT_LOG_FILE_NAME ) + sizeof( UNICODE_NULL );
-	fileName.Buffer = (PWCH)LocalAlloc( 0, fileName.MaximumLength );
+	OBJECT_ATTRIBUTES	ObjectAttributes{};
 
-	if ( !fileName.Buffer )
+	HANDLE				FileHandle = nullptr;
+
+	UNICODE_STRING		FileName{};
+
+	FileName.Buffer			= nullptr;
+
+	FileName.Length			= 0;
+
+	FileName.MaximumLength	= sizeof( DEFAULT_LOG_FILE_NAME ) + sizeof( UNICODE_NULL );
+
+	FileName.Buffer			= (PWCH)LocalAlloc( 0, FileName.MaximumLength );
+
+	if ( !FileName.Buffer )
 	{
 		return FALSE;
 	}
 
-	RtlZeroMemory( fileName.Buffer, fileName.MaximumLength );
-	auto status = RtlAppendUnicodeToString( &fileName, (PWSTR)DEFAULT_LOG_FILE_NAME );
+	RtlZeroMemory( FileName.Buffer, FileName.MaximumLength );
+	auto status = RtlAppendUnicodeToString( &FileName, (PWSTR)DEFAULT_LOG_FILE_NAME );
 
-	InitializeObjectAttributes( &objectAttributes,
-		(PUNICODE_STRING)&fileName,
+	InitializeObjectAttributes( &ObjectAttributes,
+		(PUNICODE_STRING)&FileName,
 		OBJ_CASE_INSENSITIVE,
 		NULL,
 		NULL );
 
 	status = NtCreateFile( &FileHandle,
 		FILE_APPEND_DATA | SYNCHRONIZE,
-		&objectAttributes,
+		&ObjectAttributes,
 		&IoStatus,
 		0,
 		FILE_ATTRIBUTE_NORMAL,
@@ -76,15 +83,15 @@ bool nLog::file_n( const char* sText )
 			NULL,
 			&IoStatus,
 			(char*)sText,
-			strlen( sText ),
+			(ULONG)strlen( sText ),
 			NULL,
 			NULL );
 
 		NtClose( FileHandle );
 	}
 
-	if ( fileName.Buffer )
-		LocalFree( fileName.Buffer );
+	if ( FileName.Buffer )
+		LocalFree( FileName.Buffer );
 
 	return true;
 }
@@ -94,47 +101,53 @@ bool nLog::file( const char* szFormat, ... )
 	if ( !Config::i( )->m_Logs )
 		return false;
 
-	char messagebuf[ 0x1000 ];
+	char MsgBuff[ 0x1000 ];
 
-	IO_STATUS_BLOCK  IoStatus;
-	OBJECT_ATTRIBUTES objectAttributes;
-	HANDLE FileHandle;
-	UNICODE_STRING fileName;
+	IO_STATUS_BLOCK		IoStatus{};
 
-	ZeroMemory( messagebuf, sizeof( messagebuf ) );
+	OBJECT_ATTRIBUTES	ObjectAttributes{};
+
+	HANDLE				FileHandle = nullptr;
+
+	UNICODE_STRING		FileName{};
+
+	ZeroMemory( MsgBuff, sizeof( MsgBuff ) );
 
 	va_list va_a_list = { };
 
 	va_start( va_a_list, szFormat );
 
-	auto const length = _vsnprintf_s( messagebuf, sizeof( messagebuf ), _TRUNCATE, szFormat, va_a_list );
+	auto const length = _vsnprintf_s( MsgBuff, sizeof( MsgBuff ), _TRUNCATE, szFormat, va_a_list );
 
 	va_end( va_a_list );
 
-	printf( messagebuf );
+	printf( MsgBuff );
 
-	fileName.Buffer = nullptr;
-	fileName.Length = 0;
-	fileName.MaximumLength = sizeof( DEFAULT_LOG_FILE_NAME ) + sizeof( UNICODE_NULL );
-	fileName.Buffer = (PWCH)LocalAlloc( 0, fileName.MaximumLength );
+	FileName.Buffer			= nullptr;
 
-	if ( !fileName.Buffer )
+	FileName.Length			= 0;
+
+	FileName.MaximumLength	= sizeof( DEFAULT_LOG_FILE_NAME ) + sizeof( UNICODE_NULL );
+
+	FileName.Buffer			= (PWCH)LocalAlloc( 0, FileName.MaximumLength );
+
+	if ( !FileName.Buffer )
 	{
 		return FALSE;
 	}
 
-	RtlZeroMemory( fileName.Buffer, fileName.MaximumLength );
-	auto status = RtlAppendUnicodeToString( &fileName, (PWSTR)DEFAULT_LOG_FILE_NAME );
+	RtlZeroMemory( FileName.Buffer, FileName.MaximumLength );
+	auto status = RtlAppendUnicodeToString( &FileName, (PWSTR)DEFAULT_LOG_FILE_NAME );
 
-	InitializeObjectAttributes( &objectAttributes,
-		(PUNICODE_STRING)&fileName,
+	InitializeObjectAttributes( &ObjectAttributes,
+		(PUNICODE_STRING)&FileName,
 		OBJ_CASE_INSENSITIVE,
 		NULL,
 		NULL );
 
 	status = NtCreateFile( &FileHandle,
 		FILE_APPEND_DATA | SYNCHRONIZE,
-		&objectAttributes,
+		&ObjectAttributes,
 		&IoStatus,
 		0,
 		FILE_ATTRIBUTE_NORMAL,
@@ -152,7 +165,7 @@ bool nLog::file( const char* szFormat, ... )
 			NULL,
 			NULL,
 			&IoStatus,
-			messagebuf,
+			MsgBuff,
 			length,
 			NULL,
 			NULL );
@@ -160,8 +173,8 @@ bool nLog::file( const char* szFormat, ... )
 		NtClose( FileHandle );
 	}
 
-	if ( fileName.Buffer )
-		LocalFree( fileName.Buffer );
+	if ( FileName.Buffer )
+		LocalFree( FileName.Buffer );
 
 	return true;
 }

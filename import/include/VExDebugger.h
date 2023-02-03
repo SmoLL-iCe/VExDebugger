@@ -2,16 +2,11 @@
 #include <Windows.h>
 #include <iostream>
 #include <map>
+#include <vector>
 #include <unordered_map>
 
-struct CatchedDetails
-{
-	size_t Count		= 0;
-	size_t ThreadId		= 0;
-	CONTEXT Ctx			= {};
-};
 
-using ExceptionAddressCount = std::unordered_map<void*, CatchedDetails>;
+//using ExceptionInfoList = std::vector<ExceptionInfo>;
 
 enum class HwbkpType
 {
@@ -36,17 +31,47 @@ enum class HandlerType
 	KiUserExceptionDispatcherHook,
 };
 
+enum class BkpType
+{
+	Hardware,
+};
+
+struct BkpInfo
+{
+	BkpType Type = BkpType::Hardware;
+	int Pos = 0;
+};
+	
+struct CatchedDetails
+{
+	size_t Count		= 0;
+	size_t ThreadId		= 0;
+	CONTEXT Ctx			= {};
+};
+
+struct ExceptionInfo
+{
+	CatchedDetails Details{};
+};
+
+using ExceptionInfoList = std::map<uintptr_t, ExceptionInfo>;
+
 namespace VExDebugger
 {
+
 	bool Init( HandlerType Type = HandlerType::VectoredExceptionHandler, bool SpoofHwbkp = false, bool Logs = false );
 
-	std::map<int, ExceptionAddressCount>& GetExceptionAssocAddress( );
+	std::map<uintptr_t, ExceptionInfoList>& GetAssocExceptionList( );
 
-	std::map<int, uintptr_t>& GetAddressAssocException( );
+	std::map<uintptr_t, BkpInfo>& GetBreakpointList( );
 
 	bool StartMonitorAddress( uintptr_t Address, HwbkpType Type, HwbkpSize Size );
 	
 	void RemoveMonitorAddress( uintptr_t Address );
-	
-	void PrintExceptions( );
+
+	template <typename T>
+	inline bool StartMonitorAddress( T Address, HwbkpType Type, HwbkpSize Size )
+	{
+		return StartMonitorAddress( (uintptr_t)Address, Type, Size );
+	}
 }

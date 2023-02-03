@@ -24,6 +24,7 @@ PSYSTEM_PROCESS_INFORMATION EnumSystemThreads( )
 
 			DataLength *= 2;
 		}
+
 	} while ( RetVal == STATUS_INFO_LENGTH_MISMATCH );
 
 	if ( RetVal != 0 ) 
@@ -52,6 +53,7 @@ PSYSTEM_HANDLE_INFORMATION EnumSystemHandles( )
 
 			DataLength *= 2;
 		}
+
 	} while ( RetVal == STATUS_INFO_LENGTH_MISMATCH );
 
 	if ( RetVal != 0 ) 

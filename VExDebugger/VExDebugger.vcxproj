@@ -374,6 +374,7 @@
     <ClInclude Include="Headers\Header.h" />
     <ClInclude Include="Headers\LogsException.hpp" />
     <ClInclude Include="HwBkp\HwBkp.h" />
+    <ClInclude Include="HwBkp\MgrHwBkp.h" />
     <ClInclude Include="HwBkp\Threads\ManagerThreads.h" />
     <ClInclude Include="Tools\Logs.h" />
     <ClInclude Include="Tools\ntos.h" />
@@ -385,6 +386,7 @@
     <ClCompile Include="Config\Config.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="HwBkp\HwBkp.cpp" />
+    <ClCompile Include="HwBkp\MgrHwBkp.cpp" />
     <ClCompile Include="HwBkp\Threads\ManagerThreads.cpp" />
     <ClCompile Include="Tools\Logs.cpp" />
     <ClCompile Include="Tools\WinWrap.cpp" />

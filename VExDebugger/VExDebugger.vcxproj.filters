@@ -62,6 +62,9 @@
     <ClInclude Include="Headers\LogsException.hpp">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="HwBkp\MgrHwBkp.h">
+      <Filter>VExDebugger\HwBkp</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -87,6 +90,9 @@
     </ClCompile>
     <ClCompile Include="Config\Config.cpp">
       <Filter>VExDebugger\Config</Filter>
+    </ClCompile>
+    <ClCompile Include="HwBkp\MgrHwBkp.cpp">
+      <Filter>VExDebugger\HwBkp</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -1,5 +1,5 @@
 #pragma once
-#include "../../import/include/VExDebugger.h";
+#include "../../import/include/VExDebugger.h"
 
 class Config
 {

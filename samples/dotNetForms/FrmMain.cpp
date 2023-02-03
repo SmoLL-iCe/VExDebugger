@@ -33,12 +33,12 @@ using namespace System::IO;
 
 #include <VExDebugger.h>
 
-void DisplayListItems( System::Windows::Forms::ListBox^ CurrentListBox, ExceptionAddressCount& ExcpAssoc)
+void DisplayListItems( System::Windows::Forms::ListBox^ CurrentListBox, ExceptionInfoList& ExcpAssoc)
 {
 	CurrentListBox->Items->Clear();
 
 	for ( const auto& ExcpInfo : ExcpAssoc )
-		CurrentListBox->Items->Add( Utils::CharStrToSystemStr( Utils::FormatString( "Count %08d \t Address: %p", ExcpInfo.second.Count, ExcpInfo.first ) ) );
+		CurrentListBox->Items->Add( Utils::CharStrToSystemStr( Utils::FormatString( "Count %08d \t Address: %p", ExcpInfo.second.Details.Count, ExcpInfo.first ) ) );
 }
 
 
@@ -98,41 +98,52 @@ System::Void FrmMain::BtnSave_Click( System::Object^ sender, System::EventArgs^ 
 
 System::Void FrmMain::Timer1_Tick( System::Object^ sender, System::EventArgs^ e )
 {
-	for ( auto& [KeyPos, ExceptionInfo] : VExDebugger::GetExceptionAssocAddress( ) )
+	for ( const auto& [ Address, BpInfo ] : VExDebugger::GetBreakpointList( ) )
 	{
-		const auto Address = reinterpret_cast<void*>( VExDebugger::GetAddressAssocException( )[ KeyPos ] );
+		if ( !Address )
+			continue;
 
-		switch ( KeyPos )
+		if ( BpInfo.Type != BkpType::Hardware )
+			continue;
+
+		auto ItExceptionList  = VExDebugger::GetAssocExceptionList( ).find( Address );
+
+		if ( ItExceptionList == VExDebugger::GetAssocExceptionList( ).end( ) )
+			continue;
+
+		auto& ExceptionList     = ItExceptionList->second;
+
+		switch ( BpInfo.Pos )
 		{
 		case 0:
 		{
 			tp_1->Text = Utils::CharStrToSystemStr( Utils::FormatString( "%p", Address ) );
 
-			DisplayListItems( ExcpList1, ExceptionInfo );
+			DisplayListItems( ExcpList1, ExceptionList );
+
+			break;
+		}
+		case 1:
+		{
+			tp_2->Text = Utils::CharStrToSystemStr( Utils::FormatString( "%p", Address ) );
+
+			DisplayListItems( ExcpList2, ExceptionList );
 
 			break;
 		}
 		case 2:
 		{
-			tp_2->Text = Utils::CharStrToSystemStr( Utils::FormatString( "%p", Address ) );
-
-			DisplayListItems( ExcpList2, ExceptionInfo );
-
-			break;
-		}
-		case 4:
-		{
 			tp_3->Text = Utils::CharStrToSystemStr( Utils::FormatString( "%p", Address ) );
 
-			DisplayListItems( ExcpList3, ExceptionInfo );
+			DisplayListItems( ExcpList3, ExceptionList );
 
 			break;
 		}
-		case 8:
+		case 3:
 		{
 			tp_4->Text = Utils::CharStrToSystemStr( Utils::FormatString( "%p", Address ) );
 
-			DisplayListItems( ExcpList4, ExceptionInfo );
+			DisplayListItems( ExcpList4, ExceptionList );
 
 			break;
 		}

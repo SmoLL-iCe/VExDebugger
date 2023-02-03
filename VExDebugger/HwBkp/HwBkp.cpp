@@ -28,14 +28,24 @@ HwBkp* HwBkp::i( )
 	return g_CurrentHwBreakPt;
 }
 
-bool& HwBkp::AddBkp( )
+void HwBkp::SetRemove( )
 {
-	return Add;
+	Add = false;
 }
 
 uintptr_t HwBkp::GetAddress( ) const
 {
 	return Address;
+}
+
+int HwBkp::GetPos( ) const
+{
+	return DbgRegAvailable;
+}
+
+bool HwBkp::GetAnySuccess( ) const
+{
+	return AnySuccess;
 }
 
 #ifdef _WIN64
@@ -169,6 +179,9 @@ bool HwBkp::ApplyHwbkpDebugConfig( const HANDLE hThread, uint32_t ThreadId, bool
 		printf( "fail set context\n" );
 		return false;
 	}
+
+	if ( !AnySuccess )
+		AnySuccess = true;
 
 	// run again
 	Resume( );

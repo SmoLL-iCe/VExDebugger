@@ -7,77 +7,77 @@
 #include "../Utils/Utils.h"
 #include <stb_image.h>
 
-// for test
-std::map<int, ExceptionAddressCount> ExcpAssocTests =
-{
-    {0, 
-        { 
-            { reinterpret_cast<void*>( 0x111111 ), 
-                {
-                    145, 15888, {}
-                },
-            }, 
-            { reinterpret_cast<void*>( 0x1d1112 ),
-                {
-                    478, 12088, {}
-                },
-            },
-            { reinterpret_cast<void*>( 0x1d1113 ),
-                {
-                    125, 32898, {}
-                },
-            },
-            { reinterpret_cast<void*>( 0x1d1114 ),
-                {
-                    4825, 13213, {}
-                },
-            },
-            { reinterpret_cast<void*>( 0x1d1115 ),
-                {
-                    941, 15888, {}
-                },
-            },
-            { reinterpret_cast<void*>( 0x1d1116 ),
-                {
-                    325, 148744, {}
-                },
-            },
-        } 
-    },
-    {2, 
-        { 
-            { reinterpret_cast<void*>( 0xAAAAAAA ),
-                {
-                    941, 15888, {}
-                },
-            },
-    
-            { reinterpret_cast<void*>( 0x9999999 ),
-                {
-                    941, 15888, {}
-                },
-            },
-
-        } 
-    },
-    {4,  
-        {
-            { reinterpret_cast<void*>( 0xA919999 ),
-                {
-                    941, 15888, {}
-                },
-            },
-        }
-    },
-
-};
-std::map<int, uintptr_t> AddressAssocList =
-{
-    {0, 0x158976A},
-    {2, 0xC580061},
-    {4, 0},
-    {8, 0}
-};
+//// for test
+//std::map<int, ExceptionAddressCount> ExcpAssocTests =
+//{
+//    {0, 
+//        { 
+//            { reinterpret_cast<void*>( 0x111111 ), 
+//                {
+//                    145, 15888, {}
+//                },
+//            }, 
+//            { reinterpret_cast<void*>( 0x1d1112 ),
+//                {
+//                    478, 12088, {}
+//                },
+//            },
+//            { reinterpret_cast<void*>( 0x1d1113 ),
+//                {
+//                    125, 32898, {}
+//                },
+//            },
+//            { reinterpret_cast<void*>( 0x1d1114 ),
+//                {
+//                    4825, 13213, {}
+//                },
+//            },
+//            { reinterpret_cast<void*>( 0x1d1115 ),
+//                {
+//                    941, 15888, {}
+//                },
+//            },
+//            { reinterpret_cast<void*>( 0x1d1116 ),
+//                {
+//                    325, 148744, {}
+//                },
+//            },
+//        } 
+//    },
+//    {2, 
+//        { 
+//            { reinterpret_cast<void*>( 0xAAAAAAA ),
+//                {
+//                    941, 15888, {}
+//                },
+//            },
+//    
+//            { reinterpret_cast<void*>( 0x9999999 ),
+//                {
+//                    941, 15888, {}
+//                },
+//            },
+//
+//        } 
+//    },
+//    {4,  
+//        {
+//            { reinterpret_cast<void*>( 0xA919999 ),
+//                {
+//                    941, 15888, {}
+//                },
+//            },
+//        }
+//    },
+//
+//};
+//std::map<int, uintptr_t> AddressAssocList =
+//{
+//    {0, 0x158976A},
+//    {2, 0xC580061},
+//    {4, 0},
+//    {8, 0}
+//};
 
 void Gui::Main( GLWindow* Instance, bool * pVisible )
 {
@@ -126,20 +126,26 @@ void Gui::Main( GLWindow* Instance, bool * pVisible )
         {
             auto inc = 0;
 
-            for ( const auto& ExcpAssoc : VExDebugger::GetExceptionAssocAddress( ) )
-            //for ( const auto& ExcpAssoc : ExcpAssocTests )
+            for ( const auto& [ Address, BpInfo ] : VExDebugger::GetBreakpointList( ) )
             {
-                const auto Address  = VExDebugger::GetAddressAssocException( )[ ExcpAssoc.first ];
-                //const auto Address  = AddressAssocList[ ExcpAssoc.first ];
-
                 if ( !Address )
                     continue;
 
-                auto HexStr         = "0x" + Utils::ValToHexStr( Address );
+                if ( BpInfo.Type != BkpType::Hardware )             // only support hardware breakpoint
+				    continue;
+
+			    auto ItExceptionList  = VExDebugger::GetAssocExceptionList( ).find( Address );
+
+                if ( ItExceptionList == VExDebugger::GetAssocExceptionList( ).end( ) )
+                    continue;
+
+                auto& ExceptionList     = ItExceptionList->second;
+
+                auto const HexStr       = "0x" + Utils::ValToHexStr( Address );
 
                 if ( ImGui::BeginTabItem( ( std::to_string( ++inc ) + " | " + HexStr ).c_str( ) ) )
                 {
-                    auto NumItems = ExcpAssoc.first;
+                    auto NumItems = ExceptionList.size( );
                        
                     if ( ImGui::Button( ( "Remove " + HexStr ).c_str() , { 320.f, 25.f } ) )
                         VExDebugger::RemoveMonitorAddress( Address );
@@ -149,7 +155,7 @@ void Gui::Main( GLWindow* Instance, bool * pVisible )
                     if ( SaveLogs )
                         SaveLogsStr.append( "\n# List for " + HexStr + "\n" );
 
-                    for ( const auto& ExcpInfo : ExcpAssoc.second )
+                    for ( const auto& [ExceptionAddress, ExceptionInfo] : ExceptionList )
                     {
                         ImGui::PushID( 18 * NumItems );
                         const auto hue = NumItems * 0.05f;
@@ -157,13 +163,13 @@ void Gui::Main( GLWindow* Instance, bool * pVisible )
                         ImGui::PushStyleColor( ImGuiCol_ButtonActive,   static_cast<ImVec4>( ImColor::HSV( hue, 0.8f, 0.8f ) ) );
 
                         char format[ 100 ]{};
-                        sprintf_s( format, sizeof( format ), "Count %8d Address: 0x%p", (int)ExcpInfo.second.Count, ExcpInfo.first );
+                        sprintf_s( format, sizeof( format ), "Count %8d Address: 0x%p", (int)ExceptionInfo.Details.Count, ExceptionAddress );
 
                         if ( SaveLogs )
                             SaveLogsStr.append( std::string( format ) + "\n" );
                             
                         if ( ImGui::Button( format, ImVec2( 320.f, 20.f ) ) )
-                            printf( "clicked 0x%p\n", ExcpInfo.first );
+                            printf( "clicked 0x%p\n", ExceptionAddress );
                             
                         ImGui::PopStyleColor( 2 );
                         ImGui::PopID( );
