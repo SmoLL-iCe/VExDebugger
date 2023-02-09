@@ -1,33 +1,11 @@
 
 #include "framework.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-        __declspec( dllexport )
-        bool Init( HandlerType Type, bool SpoofHwbkp, bool Logs);
 
-        __declspec( dllexport )
-        bool StartMonitorAddress( uintptr_t Address, HwbkpType Type, HwbkpSize Size );
-
-    
-#ifdef __cplusplus 
-}
-#endif
-
-bool Init( HandlerType Type, bool SpoofHwbkp, bool Logs )
-{
-    return VExDebugger::Init( Type, SpoofHwbkp, Logs );
-}
-
-bool StartMonitorAddress( uintptr_t Address, HwbkpType Type, HwbkpSize Size )
-{
-    return VExDebugger::StartMonitorAddress( Address, Type, Size );
-}
 
 void Set( )
 {
-    //VExDebugger::StartMonitorAddress( result_convert, static_cast<HwbkpType>( type_current + 1 ), static_cast<HwbkpSize>( size_current ) );
+    //VExDebugger::StartMonitorAddress( result_convert, static_cast<BkpTrigger>( type_current + 1 ), static_cast<BkpSize>( size_current ) );
 }
 
 void Initialize( )

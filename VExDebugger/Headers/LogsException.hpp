@@ -10,7 +10,7 @@ inline void DisplayContextLogs(PCONTEXT ContextRecord, PEXCEPTION_RECORD pExcept
 		"=======================================================================\n"
 		"===> ExceptionAddress 0x%p, Code: %X\n"
 		" r8[%I64X]\n r9[%I64X]\nr10[%I64X]\nr11[%I64X]\nr12[%I64X]\nr13[%I64X]\nr14[%I64X]\nr15[%I64X]\n"
-		"rax[%I64X]\nrbx[%I64X]\nrcx[%I64X]\nrdx[%I64X]\nrbp[%I64X]\nrsi[%I64X]\nrsp[%I64X]\nrdi[%I64X]\n"
+		"rax[%I64X]\nrbx[%I64X]\nrcx[%I64X]\nrdx[%I64X]\nrbp[%I64X]\nrsi[%I64X]\nrsp[%I64X]\nrdi[%I64X]\nrip[%I64X]\n"
 
 		"\nDr0 0x%I64X\nDr1 0x%I64X\nDr2 0x%I64X\nDr3 0x%I64X\nDr6 0x%I64X\nDr7 0x%I64X\n"
 
@@ -37,6 +37,7 @@ inline void DisplayContextLogs(PCONTEXT ContextRecord, PEXCEPTION_RECORD pExcept
 		ContextRecord->Rsi,
 		ContextRecord->Rsp,
 		ContextRecord->Rdi,
+		ContextRecord->Rip,
 
 		ContextRecord->Dr0,
 		ContextRecord->Dr1,

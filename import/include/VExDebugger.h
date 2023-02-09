@@ -8,14 +8,14 @@
 
 //using ExceptionInfoList = std::vector<ExceptionInfo>;
 
-enum class HwbkpType
+enum class BkpTrigger
 {
 	Execute,
 	ReadWrite,
 	Write
 };
 
-enum class HwbkpSize
+enum class BkpSize
 {
 	Size_1,
 	Size_2,
@@ -31,14 +31,19 @@ enum class HandlerType
 	KiUserExceptionDispatcherHook,
 };
 
-enum class BkpType
+enum class BkpMethod
 {
 	Hardware,
 };
 
 struct BkpInfo
 {
-	BkpType Type = BkpType::Hardware;
+	BkpMethod	Method		= BkpMethod::Hardware;
+
+	BkpTrigger	Trigger		= BkpTrigger::Execute;
+
+	BkpSize		Size		= BkpSize::Size_1;
+
 	int Pos = 0;
 };
 	
@@ -65,13 +70,13 @@ namespace VExDebugger
 
 	std::map<uintptr_t, BkpInfo>& GetBreakpointList( );
 
-	bool StartMonitorAddress( uintptr_t Address, HwbkpType Type, HwbkpSize Size );
+	bool StartMonitorAddress( uintptr_t Address, BkpTrigger Trigger, BkpSize Size );
 	
 	void RemoveMonitorAddress( uintptr_t Address );
 
 	template <typename T>
-	inline bool StartMonitorAddress( T Address, HwbkpType Type, HwbkpSize Size )
+	inline bool StartMonitorAddress( T Address, BkpTrigger Trigger, BkpSize Size )
 	{
-		return StartMonitorAddress( (uintptr_t)Address, Type, Size );
+		return StartMonitorAddress( (uintptr_t)Address, Trigger, Size );
 	}
 }

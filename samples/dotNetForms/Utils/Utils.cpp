@@ -74,14 +74,5 @@ System::String^ Utils::CharStrToSystemStr( char* text )
 
 void Utils::MsgBox( System::IntPtr handle, const char* text, const char* caption, int typ )
 {
-	static void* func_ptr = nullptr;
-	if ( !func_ptr )
-	{
-		auto mod = GetModuleHandle( L"user32.dll" );
-		if ( !mod ) return;
-		func_ptr = GetProcAddress( mod, "MessageBoxA" );
-		if ( !func_ptr ) return;
-	}
-	reinterpret_cast<int( __stdcall* )( void*, const char*, const char*, int )>( func_ptr )
-		( handle.ToPointer( ), text, caption, typ );
+	MessageBoxA( (HWND)handle.ToPointer( ), text, caption, typ );
 }

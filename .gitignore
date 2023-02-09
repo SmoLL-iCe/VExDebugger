@@ -53,6 +53,7 @@ VExDebugger_form/Release/.NETFramework,Version=v4.5.AssemblyAttributes.cpp
 .vs/veh/v16/.suo
 *.pdb
 .vs
+.vscode
 Release
 Debug
 ReleaseMD

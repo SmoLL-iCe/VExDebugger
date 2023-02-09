@@ -64,7 +64,7 @@ System::Void FrmMain::BtnAdd_Click( System::Object^ sender, System::EventArgs^ e
 		return;
 	}
 
-	VExDebugger::StartMonitorAddress( ResultConverted, HwbkpType( CbType->SelectedIndex ), HwbkpSize( CbSize->SelectedIndex ) );
+	VExDebugger::StartMonitorAddress( ResultConverted, BkpTrigger( CbType->SelectedIndex ), BkpSize( CbSize->SelectedIndex ) );
 }
 
 System::Void FrmMain::BtnSave_Click( System::Object^ sender, System::EventArgs^ e )
@@ -103,7 +103,7 @@ System::Void FrmMain::Timer1_Tick( System::Object^ sender, System::EventArgs^ e 
 		if ( !Address )
 			continue;
 
-		if ( BpInfo.Type != BkpType::Hardware )
+		if ( BpInfo.Method != BkpMethod::Hardware )
 			continue;
 
 		auto ItExceptionList  = VExDebugger::GetAssocExceptionList( ).find( Address );

@@ -7,16 +7,12 @@
 
 std::map<uintptr_t, HwBkp*> AddressAdded = { };
 
-//std::map<int, uintptr_t> AddressAssocExceptionList =
-//{
-//	{ 0, 0 },
-//	{ 2, 0 },
-//	{ 4, 0 },
-//	{ 8, 0 }
-//};
-
-
 std::list<uint32_t> ThreadIdList = { };
+
+std::map<uintptr_t, HwBkp*>& MgrHwBkp::GetHwBrkpList( )
+{
+	return AddressAdded;
+}
 
 void MgrHwBkp::UpdateInfo( )
 {
@@ -56,7 +52,7 @@ void MgrHwBkp::UpdateInfo( )
 	}
 }
 
-bool MgrHwBkp::SetBkpAddressInAllThreads( const uintptr_t Address, const HwbkpType Type, const HwbkpSize Size )
+bool MgrHwBkp::SetBkpAddressInAllThreads( const uintptr_t Address, const BkpTrigger Trigger, const BkpSize Size )
 {
 	UpdateInfo( );
 
@@ -70,7 +66,7 @@ bool MgrHwBkp::SetBkpAddressInAllThreads( const uintptr_t Address, const HwbkpTy
 
 	auto FailCount = 0;
 
-	new HwBkp( Address, Size, Type );
+	new HwBkp( Address, Size, Trigger );
 
 	for ( const auto& ThreadId : ThreadIdList )
 	{
@@ -93,9 +89,13 @@ bool MgrHwBkp::SetBkpAddressInAllThreads( const uintptr_t Address, const HwbkpTy
 	{
 		VExDebugger::GetBreakpointList( )[ Address ] = {
 
-			.Type	= BkpType::Hardware,
+			.Method		= BkpMethod::Hardware,
 
-			.Pos	= HwBkp::i( )->GetPos( ),
+			.Trigger	= HwBkp::i( )->GetTriggerType( ),
+
+			.Size		= HwBkp::i( )->GetSize( ),
+
+			.Pos		= HwBkp::i( )->GetPos( ),
 		};
 
 		AddressAdded[ Address ] = HwBkp::i( );

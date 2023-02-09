@@ -4,19 +4,15 @@
 #include "../Tools/Logs.h"
 #include "../Tools/WinWrap.h"
 
-
-#define SET_TRAP_FLAG(ctx) ctx->EFlags |= (1 << 8);
-#define UNSET_TRAP_FLAG(ctx) ctx->EFlags &= ~(1 << 8);
-
 HwBkp* g_CurrentHwBreakPt = nullptr;
 
-HwBkp::HwBkp( const uintptr_t Address, const HwbkpSize Size, const HwbkpType Type, const bool Add )
+HwBkp::HwBkp( const uintptr_t Address, const BkpSize Size, const BkpTrigger Trigger, const bool Add )
 {
 	this->Address		= Address;
 
 	this->Size			= Size;
 
-	this->Type			= Type;
+	this->Trigger		= Trigger;
 
 	this->Add			= Add;
 
@@ -36,6 +32,16 @@ void HwBkp::SetRemove( )
 uintptr_t HwBkp::GetAddress( ) const
 {
 	return Address;
+}
+
+BkpTrigger HwBkp::GetTriggerType( ) const
+{
+	return Trigger;
+}
+
+BkpSize HwBkp::GetSize( ) const
+{
+	return Size;
 }
 
 int HwBkp::GetPos( ) const
@@ -113,7 +119,6 @@ bool HwBkp::ApplyHwbkpDebugConfig( const HANDLE hThread, uint32_t ThreadId, bool
 				pDbgReg[ i ]	= 0;
 
 				DrBusy[ i ]		= false;
-
 			}
 
 		Ctx.Dr7 &= ~( 1 << bFlagPos );
@@ -149,15 +154,15 @@ bool HwBkp::ApplyHwbkpDebugConfig( const HANDLE hThread, uint32_t ThreadId, bool
 
 		auto DbgCondition	= 0;
 
-		switch ( Type )
+		switch ( Trigger )
 		{
-		case HwbkpType::Execute:
+		case BkpTrigger::Execute:
 			DbgCondition	= 0;
 			break;
-		case HwbkpType::ReadWrite:
+		case BkpTrigger::ReadWrite:
 			DbgCondition	= 3;
 			break;
-		case HwbkpType::Write:
+		case BkpTrigger::Write:
 			DbgCondition	= 1;
 			break;
 		}
@@ -166,7 +171,7 @@ bool HwBkp::ApplyHwbkpDebugConfig( const HANDLE hThread, uint32_t ThreadId, bool
 
 		setBits( Ctx.Dr7, 16 + DbgRegAvailable * 4, 2, DbgCondition );	// set dbg type
 
-		setBits( Ctx.Dr7, 18 + DbgRegAvailable * 4, 2, eSize		);	// set dbg data size
+		//setBits( Ctx.Dr7, 18 + DbgRegAvailable * 4, 2, eSize		);	// set dbg data size
 
 		setBits( Ctx.Dr7, DbgRegAvailable * 2, 1, 1 );
 	}

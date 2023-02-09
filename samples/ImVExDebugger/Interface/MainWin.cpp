@@ -7,78 +7,6 @@
 #include "../Utils/Utils.h"
 #include <stb_image.h>
 
-//// for test
-//std::map<int, ExceptionAddressCount> ExcpAssocTests =
-//{
-//    {0, 
-//        { 
-//            { reinterpret_cast<void*>( 0x111111 ), 
-//                {
-//                    145, 15888, {}
-//                },
-//            }, 
-//            { reinterpret_cast<void*>( 0x1d1112 ),
-//                {
-//                    478, 12088, {}
-//                },
-//            },
-//            { reinterpret_cast<void*>( 0x1d1113 ),
-//                {
-//                    125, 32898, {}
-//                },
-//            },
-//            { reinterpret_cast<void*>( 0x1d1114 ),
-//                {
-//                    4825, 13213, {}
-//                },
-//            },
-//            { reinterpret_cast<void*>( 0x1d1115 ),
-//                {
-//                    941, 15888, {}
-//                },
-//            },
-//            { reinterpret_cast<void*>( 0x1d1116 ),
-//                {
-//                    325, 148744, {}
-//                },
-//            },
-//        } 
-//    },
-//    {2, 
-//        { 
-//            { reinterpret_cast<void*>( 0xAAAAAAA ),
-//                {
-//                    941, 15888, {}
-//                },
-//            },
-//    
-//            { reinterpret_cast<void*>( 0x9999999 ),
-//                {
-//                    941, 15888, {}
-//                },
-//            },
-//
-//        } 
-//    },
-//    {4,  
-//        {
-//            { reinterpret_cast<void*>( 0xA919999 ),
-//                {
-//                    941, 15888, {}
-//                },
-//            },
-//        }
-//    },
-//
-//};
-//std::map<int, uintptr_t> AddressAssocList =
-//{
-//    {0, 0x158976A},
-//    {2, 0xC580061},
-//    {4, 0},
-//    {8, 0}
-//};
-
 void Gui::Main( GLWindow* Instance, bool * pVisible )
 {
     static bool once = true;
@@ -131,7 +59,7 @@ void Gui::Main( GLWindow* Instance, bool * pVisible )
                 if ( !Address )
                     continue;
 
-                if ( BpInfo.Type != BkpType::Hardware )             // only support hardware breakpoint
+                if ( BpInfo.Method != BkpMethod::Hardware )             // only support hardware breakpoint
 				    continue;
 
 			    auto ItExceptionList  = VExDebugger::GetAssocExceptionList( ).find( Address );
@@ -208,7 +136,9 @@ void Gui::Main( GLWindow* Instance, bool * pVisible )
 
         ImGui::SameLine( 115.f );
 
-        const char* types[] = { "Execute", "Read/Write","Write" };
+        const char* types[] = { 
+            //"Execute", 
+            "Read/Write","Write" };
         const char* sizes[] = { "Byte 1","Byte 2","Byte 8","Byte 4" };
         static int TypeCurrent = 0;
         static int SizeCurrent = 0;
@@ -239,7 +169,7 @@ void Gui::Main( GLWindow* Instance, bool * pVisible )
                     static_cast<uintptr_t>( strtoul( StrAddress.c_str( ), nullptr, 16 ) ) : static_cast<uintptr_t>( strtoull( StrAddress.c_str( ), nullptr, 16 ) );
                 
                 if ( ResultConverted )
-                    VExDebugger::StartMonitorAddress( ResultConverted, static_cast<HwbkpType>( TypeCurrent ), static_cast<HwbkpSize>( SizeCurrent ) );
+                    VExDebugger::StartMonitorAddress( ResultConverted, static_cast<BkpTrigger>( TypeCurrent + 1 ), static_cast<BkpSize>( SizeCurrent ) );
             }
         }
 

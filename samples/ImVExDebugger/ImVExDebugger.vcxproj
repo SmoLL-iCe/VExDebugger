@@ -329,28 +329,28 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
-    <IntDir>$(Configuration)\</IntDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <IncludePath>$(IncludePath);..\..\import\include</IncludePath>
     <LibraryPath>ImGui\glfw_opengl3\libs\glfw\dx86mt;$(LibraryPath);..\..\import\libs</LibraryPath>
     <TargetName>$(ProjectName)_x86</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
-    <IntDir>$(Configuration)\</IntDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <IncludePath>$(IncludePath);..\..\import\include</IncludePath>
     <LibraryPath>ImGui\glfw_opengl3\libs\glfw\dx64mt;$(LibraryPath);..\..\import\libs</LibraryPath>
     <TargetName>$(ProjectName)_x64</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
-    <IntDir>$(Configuration)\</IntDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <IncludePath>$(IncludePath);..\..\import\include</IncludePath>
     <LibraryPath>ImGui\glfw_opengl3\libs\glfw\rx86mt;$(LibraryPath);..\..\import\libs</LibraryPath>
     <TargetName>$(ProjectName)_x86</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
-    <IntDir>$(Configuration)\</IntDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <IncludePath>..\..\import\include;$(IncludePath)</IncludePath>
     <LibraryPath>ImGui\glfw_opengl3\libs\glfw\rx64mt;..\..\import\libs;$(LibraryPath)</LibraryPath>
     <TargetName>$(ProjectName)_x64</TargetName>

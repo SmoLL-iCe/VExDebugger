@@ -7,9 +7,9 @@ private:
 
 	uintptr_t Address			= 0;
 
-	HwbkpType Type				= HwbkpType::Execute;
+	BkpTrigger Trigger			= BkpTrigger::Execute;
 
-	HwbkpSize Size				= HwbkpSize::Size_1;
+	BkpSize Size				= BkpSize::Size_1;
 
 	int DbgRegAvailable			= 0; //max 4
 
@@ -19,7 +19,7 @@ private:
 
 public:
 
-	HwBkp( uintptr_t Address, HwbkpSize Size, HwbkpType Type, bool Add = true );
+	HwBkp( uintptr_t Address, BkpSize Size, BkpTrigger Type, bool Add = true );
 
 	static HwBkp* i( );
 
@@ -32,4 +32,8 @@ public:
 	bool GetAnySuccess( ) const;
 
 	uintptr_t GetAddress( ) const;
+
+	BkpTrigger GetTriggerType( ) const;
+
+	BkpSize GetSize( ) const;
 };
