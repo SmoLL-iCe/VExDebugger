@@ -305,12 +305,12 @@ int main( )
 
 	Sleep( 2000 );
 
-	CONTEXT ctx{};
+	//CONTEXT ctx{};
 
-	ctx.ContextFlags = CONTEXT_DEBUG_REGISTERS;
+	//ctx.ContextFlags = CONTEXT_DEBUG_REGISTERS;
 	//ctx.ContextFlags = CONTEXT_ALL;
 
-	GetThreadContext( GetCurrentThread( ), &ctx );
+	//GetThreadContext( GetCurrentThread( ), &ctx );
 
 	//printf( "read point: %llX\n", *(uint64_t*)( RelativePointPtr ) );
 
@@ -323,69 +323,81 @@ int main( )
 		printf( "ret: %02X\n", t );
 	}
 
-	//test_mod( );
+	test_mod( );
 
 	//test_page( );
 
-	for ( const auto& [ Address, BpInfo ] : VExDebugger::GetBreakpointList( ) )
-	{
-		if ( !Address )
-			continue;
+	VExDebugger::CallBreakpointList( []( TBreakpointList BreakpointList ) -> void {
 
-		if ( BpInfo.Method != BkpMethod::Hardware )             // only support hardware breakpoint
-			continue;
+		for ( const auto& [Address, BpInfo] : BreakpointList )
+		{
+			if ( !Address )
+				continue;
 
-		auto ItExceptionList  = VExDebugger::GetAssocExceptionList( ).find( Address );
+			if ( BpInfo.Method != BkpMethod::Hardware )             // only support hardware breakpoint
+				continue;
 
-		if ( ItExceptionList == VExDebugger::GetAssocExceptionList( ).end( ) )
-			continue;
+			bool Skip = false;
 
-		auto& ExceptionList     = ItExceptionList->second;
+			VExDebugger::CallAssocExceptionList( [&]( TAssocExceptionList AssocExceptionList ) -> void {
 
-		std::cout << "\nIndex: " << ( BpInfo.Pos + 1 ) << ", Address: 0x" <<
-			std::hex << std::uppercase << Address << "\n";
+				auto ItExceptionList = AssocExceptionList.find( Address );
 
+				if ( ItExceptionList == AssocExceptionList.end( ) )
+					return;
+				
 
-		for ( const auto& [ExceptionAddress, ExceptionInfo] : ExceptionList )
-        {
+				auto& ExceptionList = ItExceptionList->second;
 
-			std::cout <<
-				"\tCount " << color::start( "Light Blue" ) << 
-				std::setfill( ' ' ) << std::setw( 8 ) << std::dec << ExceptionInfo.Details.Count <<
-				color::end( );
+				std::cout << "\nIndex: " << ( BpInfo.Pos + 1 ) << ", Address: 0x" <<
+					std::hex << std::uppercase << Address << "\n";
 
 
-			if ( BpInfo.Trigger != BkpTrigger::Execute )
-			{
-				std::cout << color::start( "Light Green" );
-
-				auto Module = GetModuleInfo( ExceptionAddress );
-
-				if ( !Module.modBaseAddr )
+				for ( const auto& [ExceptionAddress, ExceptionInfo] : ExceptionList )
 				{
-					std::cout << " ExceptionAddress: 0x" << std::hex << std::uppercase << ExceptionAddress << "\n";
+
+					std::cout <<
+						"\tCount " << color::start( "Light Blue" ) <<
+						std::setfill( ' ' ) << std::setw( 8 ) << std::dec << ExceptionInfo.Details.Count <<
+						color::end( );
+
+
+					if ( BpInfo.Trigger != BkpTrigger::Execute )
+					{
+						std::cout << color::start( "Light Green" );
+
+						auto Module = GetModuleInfo( ExceptionAddress );
+
+						if ( !Module.modBaseAddr )
+						{
+							std::cout << " ExceptionAddress: 0x" << std::hex << std::uppercase << ExceptionAddress << "\n";
+						}
+						else
+						{
+							auto Offset = ExceptionAddress - reinterpret_cast<uintptr_t>( Module.modBaseAddr );
+
+							std::cout << " ExceptionAddress: ";
+
+							std::wcout << Module.szModule;
+
+							std::cout << "+0x" << std::hex << std::uppercase << Offset << "\n";
+						}
+
+						std::cout << color::end( );
+					}
+					else
+					{
+
+						std::cout << " ThreadId: " << std::dec << color::start( "Light Green" )
+							<< ExceptionAddress << color::end( ) << "\n";
+					}
 				}
-				else
-				{
-					auto Offset = ExceptionAddress - reinterpret_cast<uintptr_t>( Module.modBaseAddr );
 
-					std::cout << " ExceptionAddress: ";
+			} );
+		}
+	} );
 
-					std::wcout << Module.szModule;
 
-					std::cout << "+0x" << std::hex << std::uppercase << Offset << "\n";
-				}
-
-				std::cout << color::end( );
-			}
-			else
-			{
-
-				std::cout << " ThreadId: " << std::dec << color::start( "Light Green" ) 
-					<< ExceptionAddress << color::end( ) << "\n";
-			}
-        }
-	}
 
     return getchar( );
 }

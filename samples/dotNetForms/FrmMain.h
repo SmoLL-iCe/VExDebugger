@@ -2,6 +2,10 @@
 
 namespace VExDebuggerform {
 
+	void __stdcall InitForm( );
+
+
+
 	using namespace System;
 	using namespace System::ComponentModel;
 	using namespace System::Collections;
@@ -35,14 +39,14 @@ namespace VExDebuggerform {
 				delete components;
 			}
 		}
-	private: System::Windows::Forms::Button^ BtnAdd;
+	public: System::Windows::Forms::Button^ BtnAdd;
 	protected:
 
-	private: System::Windows::Forms::ListBox^ ExcpList1;
-	private: System::Windows::Forms::ListBox^ ExcpList2;
-	private: System::Windows::Forms::ListBox^ ExcpList3;
-	private: System::Windows::Forms::ListBox^ ExcpList4;
-	private: System::Windows::Forms::TextBox^ TbAddress;
+	public: System::Windows::Forms::ListBox^ ExcpList1;
+	public: System::Windows::Forms::ListBox^ ExcpList2;
+	public: System::Windows::Forms::ListBox^ ExcpList3;
+	public: System::Windows::Forms::ListBox^ ExcpList4;
+	public: System::Windows::Forms::TextBox^ TbAddress;
 
 
 
@@ -52,20 +56,20 @@ namespace VExDebuggerform {
 
 
 
-	private: System::Windows::Forms::ComboBox^ CbType;
+	public: System::Windows::Forms::ComboBox^ CbType;
 
 
-	private: System::Windows::Forms::ComboBox^ CbSize;
+	public: System::Windows::Forms::ComboBox^ CbSize;
 
-	private: System::Windows::Forms::Timer^ timer1;
-	private: System::Windows::Forms::TabControl^ tab_page;
-	private: System::Windows::Forms::TabPage^ tp_1;
-	private: System::Windows::Forms::TabPage^ tp_2;
-	private: System::Windows::Forms::TabPage^ tp_3;
-	private: System::Windows::Forms::TabPage^ tp_4;
-	private: System::Windows::Forms::Button^ BtnSave;
+	public: System::Windows::Forms::Timer^ timer1;
+	public: System::Windows::Forms::TabControl^ tab_page;
+	public: System::Windows::Forms::TabPage^ tp_1;
+	public: System::Windows::Forms::TabPage^ tp_2;
+	public: System::Windows::Forms::TabPage^ tp_3;
+	public: System::Windows::Forms::TabPage^ tp_4;
+	public: System::Windows::Forms::Button^ BtnSave;
 
-	private: System::Windows::Forms::SaveFileDialog^ saveFileDialog1;
+	public: System::Windows::Forms::SaveFileDialog^ saveFileDialog1;
 	private: System::ComponentModel::IContainer^ components;
 
 	protected:

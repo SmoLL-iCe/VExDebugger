@@ -3,19 +3,19 @@
 #include <iostream>
 #include "Structs.hpp"
 
-using tVectoredHandler = long( __stdcall* )( EXCEPTION_POINTERS* );
+using TVectoredHandler = long( __stdcall* )( EXCEPTION_POINTERS* );
 
-void** pKiUserExceptionDispatcherInterceptPointer   = nullptr;
+void**				pKiUserExceptionDispatcherInterceptPointer		= nullptr;
 
-extern "C" void* pKiUserExceptionDispatcherTrampo   = nullptr;
+extern "C" void*	pKiUserExceptionDispatcherTrampo				= nullptr;
 
-void* oKiUserExceptionDispatcher                    = nullptr;
+void*				oKiUserExceptionDispatcher						= nullptr;
 
-void* OrigVectoredHandler                           = nullptr;
+void*				OrigVectoredHandler								= nullptr;
 
-uint8_t* LdrpVectorHandlerList						= nullptr;
+uint8_t*			LdrpVectorHandlerList							= nullptr;
 
-tVectoredHandler pMyVectoredHandler					= nullptr;
+TVectoredHandler	pMyVectoredHandler								= nullptr;
 
 extern "C" 
 #ifdef _WIN64
@@ -24,15 +24,15 @@ uintptr_t __fastcall HandleKiUserExceptionDispatcher( PEXCEPTION_RECORD Exceptio
 uintptr_t __stdcall HandleKiUserExceptionDispatcher( PEXCEPTION_RECORD ExceptionRecord, PCONTEXT ContextRecord )
 #endif
 {
-	EXCEPTION_POINTERS Exception{};
+	EXCEPTION_POINTERS Exception = {
 
-    Exception.ExceptionRecord		= ExceptionRecord;
+		.ExceptionRecord	= ExceptionRecord,
 
-    Exception.ContextRecord			= ContextRecord;
+		.ContextRecord		= ContextRecord,
 
-	auto* const pExceptionRec		= Exception.ExceptionRecord;
+	};
 
-	auto Result						= pMyVectoredHandler( &Exception );
+	auto const	Result		= pMyVectoredHandler( &Exception );
 	
 	if ( Result == EXCEPTION_CONTINUE_EXECUTION )
 	{
@@ -83,7 +83,7 @@ bool IniVEH( )
 
 #ifndef _WIN64
 
-	auto GetVectoredHandlerList = []( uint8_t* Point, uintptr_t Base, uintptr_t EndBase ) -> uint8_t*
+	auto GeTVectoredHandlerList = []( uint8_t* Point, uintptr_t Base, uintptr_t EndBase ) -> uint8_t*
 	{
 		if ( reinterpret_cast<uintptr_t>( Point ) < Base || reinterpret_cast<uintptr_t>( Point ) > EndBase )
 			return nullptr;
@@ -98,12 +98,12 @@ bool IniVEH( )
 				{
 					pVectoredHandlerList = reinterpret_cast<uint8_t*>( VectoredHandlerList );
 
-					printf( "pVectoredHandlerList %p\n", pVectoredHandlerList );
+					//printf( "pVectoredHandlerList %p\n", pVectoredHandlerList );
 					break;
 				}
 				else
 				{
-					printf( "VectoredHandlerList fail %d\n", x );
+					//printf( "VectoredHandlerList fail %d\n", x );
 				}
 			}
 		}
@@ -119,20 +119,20 @@ bool IniVEH( )
 
 		if ( fPoint )
 		{
-			LdrpVectorHandlerList = GetVectoredHandlerList( fPoint, ntdll_base, ntdll_base_end );
+			LdrpVectorHandlerList = GeTVectoredHandlerList( fPoint, ntdll_base, ntdll_base_end );
 
 			if ( LdrpVectorHandlerList )
 				break;
 		}				
 	}
 #else
-	auto GetVectoredHandlerList = []( uint8_t* Point, uintptr_t Base, uintptr_t EndBase ) -> uint8_t*
+	auto GeTVectoredHandlerList = []( uint8_t* Point, uintptr_t Base, uintptr_t EndBase ) -> uint8_t*
 	{
 		if ( reinterpret_cast<uintptr_t>( Point ) < Base || reinterpret_cast<uintptr_t>( Point ) > EndBase )
 			return nullptr;
 
 		uint8_t* pVectoredHandlerList = nullptr;
-		for ( size_t x = 0; x < 0x200; x++ )
+		for ( int x = 0; x < 0x200; x++ )
 		{
 			if ( !pVectoredHandlerList && Point[ x ] == 0x83 && Point[ x + 2 ] == 0x3F && Point[ x + 3 ] == 0x48 ) //and eax, 3Fh // lea rdi, LdrpVectorHandlerList
 			{
@@ -140,12 +140,12 @@ bool IniVEH( )
 				if ( VectoredHandlerList > Base && VectoredHandlerList < EndBase )
 				{
 					pVectoredHandlerList = reinterpret_cast<uint8_t*>( VectoredHandlerList );
-					printf( "pVectoredHandlerList %p\n", pVectoredHandlerList );
+					//printf( "pVectoredHandlerList 0x%p\n", pVectoredHandlerList );
 					break;
 				}
 				else
 				{
-					printf( "VectoredHandlerList fail %d\n", x );
+					//printf( "VectoredHandlerList fail %d\n", x );
 				}
 			}
 		}
@@ -161,7 +161,7 @@ bool IniVEH( )
 
 		if ( fPoint )
 		{
-			LdrpVectorHandlerList = GetVectoredHandlerList( fPoint, ntdll_base, ntdll_base_end );
+			LdrpVectorHandlerList = GeTVectoredHandlerList( fPoint, ntdll_base, ntdll_base_end );
 
 			if ( LdrpVectorHandlerList )
 				break;
@@ -214,10 +214,9 @@ bool IniVEH( )
 	}
 #endif // _WIN64
 
-	printf( "pKiUserExceptionDispatcherInterceptPointer %p\n", pKiUserExceptionDispatcherInterceptPointer );
-	printf( "pKiUserExceptionDispatcherTrampo %p\n", pKiUserExceptionDispatcherTrampo );
+	//printf( "pKiUserExceptionDispatcherInterceptPointer %p\n", pKiUserExceptionDispatcherInterceptPointer );
+	//printf( "pKiUserExceptionDispatcherTrampo %p\n", pKiUserExceptionDispatcherTrampo );
 	return ( pKiUserExceptionDispatcherInterceptPointer && pKiUserExceptionDispatcherTrampo );
-	//hk::apply_detour( KiUserExceptionDispatcherAsm, oKiUserExceptionDispatcher );
 }
 
 #ifdef _WIN64
@@ -234,11 +233,11 @@ bool VEH_Internal::HookKiUserExceptionDispatcher( void* MyVectoredHandler )
 	{
 
 #ifdef _WIN64
-		auto Address = (void*)pKiUserExceptionDispatcherInterceptPointer;
+		auto	Address = (void*)pKiUserExceptionDispatcherInterceptPointer;
 
-		SIZE_T Size = 0x1000;
+		SIZE_T	Size	= 0x1000;
 
-		ULONG P;
+		ULONG	P		= 0;
 
 		auto status = NtProtectVirtualMemory( (HANDLE)(- 1 ), &Address, &Size, PAGE_EXECUTE_READWRITE, &P );
 
@@ -279,7 +278,7 @@ bool VEH_Internal::InterceptVEHHandler( void* VectoredHandler, void*& orig_Vecto
         //else 
         //    *reinterpret_cast<void**>( &HandlerEntry->New.Handler ) = RtlEncodePointer( VectoredHandler );
 
-        printf( "DecodedPointer: 0x%p\n", DecodedPointer );
+        //printf( "DecodedPointer: 0x%p\n", DecodedPointer );
 
 		return true;
 

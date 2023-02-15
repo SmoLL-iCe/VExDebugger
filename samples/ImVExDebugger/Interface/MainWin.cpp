@@ -52,68 +52,79 @@ void Gui::Main( GLWindow* Instance, bool * pVisible )
 
         if ( ImGui::BeginTabBar( "#TabBar", TabBarFlags ) )
         {
-            auto inc = 0;
+            VExDebugger::CallBreakpointList( []( TBreakpointList BreakpointList ) -> void {
 
-            for ( const auto& [ Address, BpInfo ] : VExDebugger::GetBreakpointList( ) )
-            {
-                if ( !Address )
-                    continue;
+                auto inc = 0;
 
-                if ( BpInfo.Method != BkpMethod::Hardware )             // only support hardware breakpoint
-				    continue;
-
-			    auto ItExceptionList  = VExDebugger::GetAssocExceptionList( ).find( Address );
-
-                if ( ItExceptionList == VExDebugger::GetAssocExceptionList( ).end( ) )
-                    continue;
-
-                auto& ExceptionList     = ItExceptionList->second;
-
-                auto const HexStr       = "0x" + Utils::ValToHexStr( Address );
-
-                if ( ImGui::BeginTabItem( ( std::to_string( ++inc ) + " | " + HexStr ).c_str( ) ) )
+                for ( const auto& [ Address, BpInfo ] : BreakpointList )
                 {
-                    auto NumItems = ExceptionList.size( );
+                    if ( !Address )
+                        continue;
+
+                    if ( BpInfo.Method != BkpMethod::Hardware )             // only support hardware breakpoint
+				        continue;
+
+                    VExDebugger::CallAssocExceptionList( [&]( TAssocExceptionList AssocExceptionList ) -> void {
+
+			            auto ItExceptionList  = AssocExceptionList.find( Address );
+
+                        if ( ItExceptionList == AssocExceptionList.end( ) )
+                            return;
+
+                        auto& ExceptionList     = ItExceptionList->second;
+
+                        auto const HexStr       = "0x" + Utils::ValToHexStr( Address );
+
+                        if ( ImGui::BeginTabItem( ( std::to_string( ++inc ) + " | " + HexStr ).c_str( ) ) )
+                        {
+                            auto NumItems = ExceptionList.size( );
                        
-                    if ( ImGui::Button( ( "Remove " + HexStr ).c_str() , { 320.f, 25.f } ) )
-                        VExDebugger::RemoveMonitorAddress( Address );
+                            if ( ImGui::Button( ( "Remove " + HexStr ).c_str() , { 320.f, 25.f } ) )
+                                VExDebugger::RemoveMonitorAddress( Address );
 
-                    std::string SaveLogsStr{};
+                            std::string SaveLogsStr{};
 
-                    if ( SaveLogs )
-                        SaveLogsStr.append( "\n# List for " + HexStr + "\n" );
+                            if ( SaveLogs )
+                                SaveLogsStr.append( "\n# List for " + HexStr + "\n" );
 
-                    for ( const auto& [ExceptionAddress, ExceptionInfo] : ExceptionList )
-                    {
-                        ImGui::PushID( 18 * NumItems );
-                        const auto hue = NumItems * 0.05f;
-                        ImGui::PushStyleColor( ImGuiCol_ButtonHovered,  static_cast<ImVec4>( ImColor::HSV( hue, 0.7f, 0.7f ) ) );
-                        ImGui::PushStyleColor( ImGuiCol_ButtonActive,   static_cast<ImVec4>( ImColor::HSV( hue, 0.8f, 0.8f ) ) );
+                            for ( const auto& [ ExceptionAddress, ExceptionInfo ] : ExceptionList )
+                            {
+                                ImGui::PushID( 18 * NumItems );
 
-                        char format[ 100 ]{};
-                        sprintf_s( format, sizeof( format ), "Count %8d Address: 0x%p", (int)ExceptionInfo.Details.Count, ExceptionAddress );
+                                const auto hue = NumItems * 0.05f;
 
-                        if ( SaveLogs )
-                            SaveLogsStr.append( std::string( format ) + "\n" );
+                                ImGui::PushStyleColor( ImGuiCol_ButtonHovered,  static_cast<ImVec4>( ImColor::HSV( hue, 0.7f, 0.7f ) ) );
+
+                                ImGui::PushStyleColor( ImGuiCol_ButtonActive,   static_cast<ImVec4>( ImColor::HSV( hue, 0.8f, 0.8f ) ) );
+
+                                char format[ 100 ]{};
+                                sprintf_s( format, sizeof( format ), "Count %8d Address: 0x%p", (int)ExceptionInfo.Details.Count, (void*)ExceptionAddress );
+
+                                if ( SaveLogs )
+                                    SaveLogsStr.append( std::string( format ) + "\n" );
                             
-                        if ( ImGui::Button( format, ImVec2( 320.f, 20.f ) ) )
-                            printf( "clicked 0x%p\n", ExceptionAddress );
+                                if ( ImGui::Button( format, ImVec2( 320.f, 20.f ) ) )
+                                    printf( "clicked 0x%p\n", ExceptionAddress );
                             
-                        ImGui::PopStyleColor( 2 );
-                        ImGui::PopID( );
+                                ImGui::PopStyleColor( 2 );
+                                ImGui::PopID( );
 
-                        ++NumItems;
-                    }
+                                ++NumItems;
+                            }
 
-                    if ( SaveLogs )
-                    {
-                        Utils::CreateFileFromText( L"VExDebugger_" + std::wstring( HexStr.begin(), HexStr.end() ) + L".log", SaveLogsStr );
-                        SaveLogsStr.clear( );
-                    }
+                            if ( SaveLogs )
+                            {
+                                Utils::CreateFileFromText( L"VExDebugger_" + std::wstring( HexStr.begin(), HexStr.end() ) + L".log", SaveLogsStr );
+                                SaveLogsStr.clear( );
+                            }
 
-                    ImGui::EndTabItem( );
+                            ImGui::EndTabItem( );
+                        }
+                    } );
                 }
-            }
+
+            } );
+
             if ( SaveLogs )
             {
                 SaveLogs = false;

@@ -1,4 +1,5 @@
 #include "../Headers/Header.h"
+#include "../Headers/VExInternal.h"
 #include "MgrHwBkp.h"
 #include "HwBkp.h"
 #include "../Tools/WinWrap.h"
@@ -87,7 +88,7 @@ bool MgrHwBkp::SetBkpAddressInAllThreads( const uintptr_t Address, const BkpTrig
 	// if any thread was setted
 	if ( HwBkp::i( )->GetAnySuccess( ) )
 	{
-		VExDebugger::GetBreakpointList( )[ Address ] = {
+		VExInternal::GetBreakpointList( )[ Address ] = {
 
 			.Method		= BkpMethod::Hardware,
 
@@ -124,21 +125,21 @@ void MgrHwBkp::RemoveBkpAddressInAllThreads( const uintptr_t Address )
 			Hwbkp->ApplyHwbkpDebugConfig( hThread, ThreadId );
 		}
 
-		auto const ItBreakpointInfo = VExDebugger::GetBreakpointList( ).find( Address );
+		auto const ItBreakpointInfo = VExInternal::GetBreakpointList( ).find( Address );
 
-		if ( ItBreakpointInfo != VExDebugger::GetBreakpointList( ).end( ) )
+		if ( ItBreakpointInfo != VExInternal::GetBreakpointList( ).end( ) )
 		{
-			VExDebugger::GetBreakpointList( ).erase( ItBreakpointInfo );
+			VExInternal::GetBreakpointList( ).erase( ItBreakpointInfo );
 
-			auto const ItException = VExDebugger::GetAssocExceptionList( ).find( Address );
+			auto const ItException = VExInternal::GetAssocExceptionList( ).find( Address );
 
-			if ( ItException != VExDebugger::GetAssocExceptionList( ).end( ) )
+			if ( ItException != VExInternal::GetAssocExceptionList( ).end( ) )
 			{
 				ItException->second.clear( );
 
 				ItException->second.swap( ItException->second );
 
-				VExDebugger::GetAssocExceptionList( ).erase( ItException );
+				VExInternal::GetAssocExceptionList( ).erase( ItException );
 			}
 		}
 

@@ -171,7 +171,7 @@ bool HwBkp::ApplyHwbkpDebugConfig( const HANDLE hThread, uint32_t ThreadId, bool
 
 		setBits( Ctx.Dr7, 16 + DbgRegAvailable * 4, 2, DbgCondition );	// set dbg type
 
-		//setBits( Ctx.Dr7, 18 + DbgRegAvailable * 4, 2, eSize		);	// set dbg data size
+		setBits( Ctx.Dr7, 18 + DbgRegAvailable * 4, 2, eSize		);	// set dbg data size
 
 		setBits( Ctx.Dr7, DbgRegAvailable * 2, 1, 1 );
 	}

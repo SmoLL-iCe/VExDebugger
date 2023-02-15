@@ -5,12 +5,6 @@
 #include "FrmMain.h"
 #include "Utils/Utils.h"
 
-void __stdcall ThreadForm( )
-{
-	VExDebuggerform::FrmMain^ form = gcnew VExDebuggerform::FrmMain( );
-	form->Text = "VExDebugger";
-	form->ShowDialog( );
-}
 
 BOOL __stdcall DllMain( HMODULE h_module, DWORD  ul_reason_for_call, LPVOID reserved )
 {
@@ -18,7 +12,7 @@ BOOL __stdcall DllMain( HMODULE h_module, DWORD  ul_reason_for_call, LPVOID rese
 	{
 	case DLL_PROCESS_ATTACH:
 		Utils::OpenConsole( "" );
-		CreateThread( nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>( ThreadForm ), nullptr, 0, nullptr );
+		CreateThread( nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>( VExDebuggerform::InitForm ), nullptr, 0, nullptr );
 		break;
 	case DLL_THREAD_ATTACH:
 	case DLL_THREAD_DETACH:

@@ -382,6 +382,7 @@
     <ClInclude Include="Config\Config.h" />
     <ClInclude Include="Headers\Header.h" />
     <ClInclude Include="Headers\LogsException.hpp" />
+    <ClInclude Include="Headers\VExInternal.h" />
     <ClInclude Include="HwBkp\HwBkp.h" />
     <ClInclude Include="HwBkp\MgrHwBkp.h" />
     <ClInclude Include="HwBkp\Threads\ManagerThreads.h" />
@@ -393,7 +394,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Config\Config.cpp" />
-    <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="HwBkp\HwBkp.cpp" />
     <ClCompile Include="HwBkp\MgrHwBkp.cpp" />
     <ClCompile Include="HwBkp\Threads\ManagerThreads.cpp" />

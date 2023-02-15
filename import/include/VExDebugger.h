@@ -3,10 +3,7 @@
 #include <iostream>
 #include <map>
 #include <vector>
-#include <unordered_map>
-
-
-//using ExceptionInfoList = std::vector<ExceptionInfo>;
+#include <functional>
 
 enum class BkpTrigger
 {
@@ -49,9 +46,11 @@ struct BkpInfo
 	
 struct CatchedDetails
 {
-	size_t Count		= 0;
-	size_t ThreadId		= 0;
-	CONTEXT Ctx			= {};
+	size_t		Count		= 0;
+
+	size_t		ThreadId	= 0;
+
+	CONTEXT		Ctx			= {};
 };
 
 struct ExceptionInfo
@@ -59,16 +58,19 @@ struct ExceptionInfo
 	CatchedDetails Details{};
 };
 
-using ExceptionInfoList = std::map<uintptr_t, ExceptionInfo>;
+using ExceptionInfoList				= std::map<uintptr_t, ExceptionInfo>;
+
+using TBreakpointList				= std::map<uintptr_t, BkpInfo>;
+
+using TAssocExceptionList			= std::map<uintptr_t, ExceptionInfoList>;
 
 namespace VExDebugger
 {
-
 	bool Init( HandlerType Type = HandlerType::VectoredExceptionHandler, bool SpoofHwbkp = false, bool Logs = false );
 
-	std::map<uintptr_t, ExceptionInfoList>& GetAssocExceptionList( );
+	void CallAssocExceptionList( const std::function<void( TAssocExceptionList& )>& lpEnumFunc );
 
-	std::map<uintptr_t, BkpInfo>& GetBreakpointList( );
+	void CallBreakpointList( const std::function<void( TBreakpointList& )>& lpEnumFunc );
 
 	bool StartMonitorAddress( uintptr_t Address, BkpTrigger Trigger, BkpSize Size );
 	
