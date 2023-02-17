@@ -1,23 +1,18 @@
 # VExDebugger
 
-A debugger using VEH.
+A debugger library using VEH.
 
 [![forthebadge](https://forthebadge.com/images/badges/made-with-c-plus-plus.svg)](https://forthebadge.com)
 
 ## What is it ?
 
-is a simple access and write debugger that uses hardware breakpoints, and that manages debugging using the windows exception support system (based on the VEH of the Cheat Engine).
-
-<h3 align="center">
-  <img src="README/vex_debug_gui.png" alt="screeen" />
-  <img src="README/vex_debug_form.png" alt="screeen" />
-</h3>
+This is a simple debugger library for monitoring data access and writing using hardware breakpoints which manages debugging using the Windows Exception Handling system (inspired by VEH of the Cheat Engine).
 
 > **Nota:** _This tool is in beta, it may have problems depending on some variant not yet tested._
 
 ## Compatibility
 
-✔ Windows 64 bits or 32 bits
+✔ Windows : 64 bits or 32 bits
 
 ## Breakpoint types
 
@@ -31,9 +26,9 @@ is a simple access and write debugger that uses hardware breakpoints, and that m
 
 ## How to use this?
 
-go to the releases part and download, attach the VExDebugger dll form or imgui in the process you want to debug.
-use an injector for this.
-add the addresses you want to know who writes or accesses.
+You can compile your own project using the Debugger library or you can use one of the ready-made examples using the lib.
+In the examples you will find ways to debug your own executable or create a dll to attach to another process and debug it. (use an injector for this.)
+And Add the addresses you want to know who writes or accesses.
 
 ## What was used to compile?
 
@@ -41,10 +36,20 @@ add the addresses you want to know who writes or accesses.
 - **Platform tools** - Visual Studio 2022 (v143)
 - **C++ SDK version used** - 10.0.22621.0
 
+<h3 align="center">
+  <img src="README/vex_debug_form.png" alt="screeen" />
+</h3>
+
 ### .NET Sample C++/CLI
 
 - **Common Language Runtime Support** - CLR
 - **.NET version** - v4.8
+
+<h3 align="center">
+  <img src="README/vex_debug_gui.png" alt="screeen" />
+</h3>
+
+### One of the examples uses [ImGui](https://github.com/ocornut/imgui)
 
 ## Author
 
