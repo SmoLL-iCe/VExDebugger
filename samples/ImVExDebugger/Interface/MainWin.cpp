@@ -64,28 +64,29 @@ void Gui::Main( GLWindow* Instance, bool * pVisible )
                     if ( BpInfo.Method != BkpMethod::Hardware )             // only support hardware breakpoint
 				        continue;
 
-                    VExDebugger::CallAssocExceptionList( [&]( TAssocExceptionList AssocExceptionList ) -> void {
+                    auto const HexStr = "0x" + Utils::ValToHexStr( Address );
 
-			            auto ItExceptionList  = AssocExceptionList.find( Address );
+                    if ( ImGui::BeginTabItem( ( std::to_string( ++inc ) + " | " + HexStr ).c_str( ) ) )
+                    {
 
-                        if ( ItExceptionList == AssocExceptionList.end( ) )
-                            return;
+                        if ( ImGui::Button( ( "Remove " + HexStr ).c_str( ), { 320.f, 25.f } ) )
+                            VExDebugger::RemoveMonitorAddress( Address );
 
-                        auto& ExceptionList     = ItExceptionList->second;
+                        VExDebugger::CallAssocExceptionList( [&]( TAssocExceptionList AssocExceptionList ) -> void {
 
-                        auto const HexStr       = "0x" + Utils::ValToHexStr( Address );
+			                auto ItExceptionList  = AssocExceptionList.find( Address );
 
-                        if ( ImGui::BeginTabItem( ( std::to_string( ++inc ) + " | " + HexStr ).c_str( ) ) )
-                        {
-                            auto NumItems = ExceptionList.size( );
-                       
-                            if ( ImGui::Button( ( "Remove " + HexStr ).c_str() , { 320.f, 25.f } ) )
-                                VExDebugger::RemoveMonitorAddress( Address );
+                            if ( ItExceptionList == AssocExceptionList.end( ) )
+                                return;
+
+                            auto& ExceptionList     = ItExceptionList->second;
 
                             std::string SaveLogsStr{};
 
                             if ( SaveLogs )
                                 SaveLogsStr.append( "\n# List for " + HexStr + "\n" );
+
+                            auto NumItems = ExceptionList.size( );
 
                             for ( const auto& [ ExceptionAddress, ExceptionInfo ] : ExceptionList )
                             {
@@ -118,9 +119,10 @@ void Gui::Main( GLWindow* Instance, bool * pVisible )
                                 SaveLogsStr.clear( );
                             }
 
-                            ImGui::EndTabItem( );
-                        }
-                    } );
+                        } );
+
+                        ImGui::EndTabItem( );
+                    }
                 }
 
             } );
@@ -129,7 +131,6 @@ void Gui::Main( GLWindow* Instance, bool * pVisible )
             {
                 SaveLogs = false;
             }
-
 
             ImGui::EndTabBar( );
         }      

@@ -8,17 +8,9 @@
 
 BOOL __stdcall DllMain( HMODULE h_module, DWORD  ul_reason_for_call, LPVOID reserved )
 {
-	switch ( ul_reason_for_call )
+	if ( ul_reason_for_call == DLL_PROCESS_ATTACH )
 	{
-	case DLL_PROCESS_ATTACH:
-		Utils::OpenConsole( "" );
 		CreateThread( nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>( VExDebuggerform::InitForm ), nullptr, 0, nullptr );
-		break;
-	case DLL_THREAD_ATTACH:
-	case DLL_THREAD_DETACH:
-	case DLL_PROCESS_DETACH:
-		break;
-	default:;
 	}
 	return TRUE;
 }

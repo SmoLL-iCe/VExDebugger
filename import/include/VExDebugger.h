@@ -66,7 +66,7 @@ using TAssocExceptionList			= std::map<uintptr_t, ExceptionInfoList>;
 
 namespace VExDebugger
 {
-	bool Init( HandlerType Type = HandlerType::VectoredExceptionHandler, bool SpoofHwbkp = false, bool Logs = false );
+	bool Init( HandlerType Type = HandlerType::VectoredExceptionHandler, bool Logs = false );
 
 	void CallAssocExceptionList( const std::function<void( TAssocExceptionList& )>& lpEnumFunc );
 

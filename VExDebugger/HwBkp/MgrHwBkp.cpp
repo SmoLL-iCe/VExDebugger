@@ -60,10 +60,17 @@ bool MgrHwBkp::SetBkpAddressInAllThreads( const uintptr_t Address, const BkpTrig
 	if ( ThreadIdList.empty( ) )
 		return false;
 
-	const auto itAddress = AddressAdded.find( Address );
+	for ( auto& [ AddedAdr, AddedHwbkp ] : AddressAdded )
+	{
+		std::int32_t CurrentSize = 0;
 
-	if ( itAddress != AddressAdded.end( ) )
-		return false;
+		CurrentSize = ( BkpSize::Size_8 == AddedHwbkp->GetSize( ) ) ? 7 : ( static_cast<int>( AddedHwbkp->GetSize( ) ) ) ;
+	
+		if ( Address >= AddedAdr && Address <= ( AddedAdr + CurrentSize ) ) // check is the same range
+		{
+			return false;
+		}
+	}
 
 	auto FailCount = 0;
 

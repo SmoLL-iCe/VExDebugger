@@ -1,5 +1,6 @@
 #pragma once
 #include "Header.h"
+#include "../Tools/Logs.h"
 
 inline void DisplayContextLogs(PCONTEXT ContextRecord, PEXCEPTION_RECORD pExceptionRecord )
 {

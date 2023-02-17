@@ -4,8 +4,6 @@ namespace VExDebuggerform {
 
 	void __stdcall InitForm( );
 
-
-
 	using namespace System;
 	using namespace System::ComponentModel;
 	using namespace System::Collections;
@@ -14,24 +12,27 @@ namespace VExDebuggerform {
 	using namespace System::Drawing;
 	using namespace System::Runtime::InteropServices;
 
-	/// <summary>
-	/// Sumário para FrmMain
-	/// </summary>
 	public ref class FrmMain : public System::Windows::Forms::Form
 	{
+	public: Generic::List<Windows::Forms::TabPage^>^ tabPages = gcnew Generic::List<Windows::Forms::TabPage^>( );
+	public: Generic::List<Windows::Forms::ListBox^>^ listBoxes = gcnew Generic::List<Windows::Forms::ListBox^>( );
 	public:
 		FrmMain(void)
 		{
 			InitializeComponent();
-			//
-			//TODO: Adicione o código do construtor aqui
-			//
+
+			tabPages->Add( this->tp_1 );
+			tabPages->Add( this->tp_2 );
+			tabPages->Add( this->tp_3 );
+			tabPages->Add( this->tp_4 );
+
+			listBoxes->Add( this->ExcpList1 );
+			listBoxes->Add( this->ExcpList2 );
+			listBoxes->Add( this->ExcpList3 );
+			listBoxes->Add( this->ExcpList4 );
 		}
 
 	protected:
-		/// <summary>
-		/// Limpar os recursos que estão sendo usados.
-		/// </summary>
 		~FrmMain()
 		{
 			if (components)
@@ -39,28 +40,16 @@ namespace VExDebuggerform {
 				delete components;
 			}
 		}
-	public: System::Windows::Forms::Button^ BtnAdd;
 	protected:
 
+	public: System::Windows::Forms::Button^ BtnAdd;
 	public: System::Windows::Forms::ListBox^ ExcpList1;
 	public: System::Windows::Forms::ListBox^ ExcpList2;
 	public: System::Windows::Forms::ListBox^ ExcpList3;
 	public: System::Windows::Forms::ListBox^ ExcpList4;
 	public: System::Windows::Forms::TextBox^ TbAddress;
-
-
-
-
-
-
-
-
-
 	public: System::Windows::Forms::ComboBox^ CbType;
-
-
 	public: System::Windows::Forms::ComboBox^ CbSize;
-
 	public: System::Windows::Forms::Timer^ timer1;
 	public: System::Windows::Forms::TabControl^ tab_page;
 	public: System::Windows::Forms::TabPage^ tp_1;
@@ -68,23 +57,14 @@ namespace VExDebuggerform {
 	public: System::Windows::Forms::TabPage^ tp_3;
 	public: System::Windows::Forms::TabPage^ tp_4;
 	public: System::Windows::Forms::Button^ BtnSave;
-
 	public: System::Windows::Forms::SaveFileDialog^ saveFileDialog1;
 	private: System::ComponentModel::IContainer^ components;
 
 	protected:
 
 	private:
-		/// <summary>
-		/// Variável de designer necessária.
-		/// </summary>
-
 
 #pragma region Windows Form Designer generated code
-		/// <summary>
-		/// Método necessário para suporte ao Designer - não modifique 
-		/// o conteúdo deste método com o editor de código.
-		/// </summary>
 		void InitializeComponent(void)
 		{
 			this->components = ( gcnew System::ComponentModel::Container( ) );
@@ -279,6 +259,7 @@ namespace VExDebuggerform {
 			this->MaximizeBox = false;
 			this->Name = L"FrmMain";
 			this->Text = L"u";
+			this->Load += gcnew System::EventHandler( this, &FrmMain::FrmMain_Load );
 			this->tab_page->ResumeLayout( false );
 			this->tp_1->ResumeLayout( false );
 			this->tp_2->ResumeLayout( false );
@@ -292,5 +273,9 @@ namespace VExDebuggerform {
 	private: System::Void BtnAdd_Click(System::Object^ sender, System::EventArgs^ e);
 	private: System::Void Timer1_Tick(System::Object^ sender, System::EventArgs^ e);
 	private: System::Void BtnSave_Click( System::Object^ sender, System::EventArgs^ e );
+	private: System::Void FrmMain_Load( System::Object^ sender, System::EventArgs^ e );
+	public: System::Void ChangeTPIndex( int index, System::String^ str );
+	public: Windows::Forms::ListBox^ GetLbFromIndex( int index );
+
 };
 }

@@ -12,6 +12,7 @@
 using namespace VExDebuggerform;
 using namespace System;
 using namespace System::IO;
+using namespace System::Collections::Generic;
 
 #define MM "MD"
 
@@ -33,17 +34,27 @@ using namespace System::IO;
 
 #include <VExDebugger.h>
 
-VExDebuggerform::FrmMain^* pMainForm = nullptr;
+VExDebuggerform::FrmMain^* g_MainForm = nullptr;
 
 void __stdcall VExDebuggerform::InitForm( )
 {
-	auto gMainForm = gcnew VExDebuggerform::FrmMain( );
-	pMainForm = &gMainForm;
-	gMainForm->Text = "VExDebugger";
-	gMainForm->ShowDialog( );
+	Utils::OpenConsole( "" );
+
+	VExDebugger::Init( HandlerType::UnhandledExceptionFilter, true );
+
+	auto MainForm	= gcnew VExDebuggerform::FrmMain( );
+
+	g_MainForm		= &MainForm;
+
+	MainForm->Text	= "VExDebugger";
+
+	MainForm->ShowDialog( );
+
+	while ( true )
+	{
+		Sleep( 5000 );
+	}
 }
-
-
 
 void DisplayListItems( System::Windows::Forms::ListBox^ CurrentListBox, ExceptionInfoList& ExcpAssoc)
 {
@@ -53,10 +64,14 @@ void DisplayListItems( System::Windows::Forms::ListBox^ CurrentListBox, Exceptio
 		CurrentListBox->Items->Add( Utils::CharStrToSystemStr( Utils::FormatString( "Count %08d \t Address: %p", ExcpInfo.second.Details.Count, ExcpInfo.first ) ) );
 }
 
+System::Void FrmMain::FrmMain_Load( System::Object^ sender, System::EventArgs^ e )
+{
+	CbType->SelectedIndex = 1;
+	CbSize->SelectedIndex = 3;
+}
 
 System::Void FrmMain::BtnAdd_Click( System::Object^ sender, System::EventArgs^ e )
 {
-
 	std::string AddressStr = Utils::SystemStrToCharStr( TbAddress->Text );
 
 	if ( !Utils::IsValidHex( AddressStr ) )
@@ -107,131 +122,52 @@ System::Void FrmMain::BtnSave_Click( System::Object^ sender, System::EventArgs^ 
 	wt->Close( );
 }
 
-void List( )
+void ListExceptions( )
 {
 	VExDebugger::CallBreakpointList( []( TBreakpointList& BreakpointList ) {
+
 		for ( const auto& [Address, BpInfo] : BreakpointList )
 		{
-			if ( !Address )
-				continue;
-
 			if ( BpInfo.Method != BkpMethod::Hardware )
 				continue;
 
 			auto pAddress = Address;
+
 			auto& pBpInfo = BpInfo;
+
+			System::String^ str = Utils::CharStrToSystemStr( Utils::FormatString( "%p", pAddress ) );
+
+			( *g_MainForm )->ChangeTPIndex( pBpInfo.Pos, str );
 
 			VExDebugger::CallAssocExceptionList( 
 
-			[ & ]( TAssocExceptionList AssocExceptionList ) -> void {
+				[ & ]( TAssocExceptionList AssocExceptionList ) -> void {
 
-				auto ItExceptionList = AssocExceptionList.find( pAddress );
+					auto ItExceptionList = AssocExceptionList.find( pAddress );
 
-				if ( ItExceptionList == AssocExceptionList.end( ) )
-					return;
+					if ( ItExceptionList == AssocExceptionList.end( ) )
+						return;
 
-				auto& ExceptionList = ItExceptionList->second;
+					auto& ExceptionList = ItExceptionList->second;
 
-				printf( "BpInfo.Pos", pBpInfo );
-				switch ( pBpInfo.Pos )
-				{
-				case 0:
-				{
-					
-					(*pMainForm)->tp_1->Text = Utils::CharStrToSystemStr( Utils::FormatString( "%p", pAddress ) );
-
-					DisplayListItems( ( *pMainForm )->ExcpList1, ExceptionList );
-
-					break;
-				}
-				case 1:
-				{
-					( *pMainForm )->tp_2->Text = Utils::CharStrToSystemStr( Utils::FormatString( "%p", pAddress ) );
-
-					DisplayListItems( ( *pMainForm )->ExcpList2, ExceptionList );
-
-					break;
-				}
-				case 2:
-				{
-					( *pMainForm )->tp_3->Text = Utils::CharStrToSystemStr( Utils::FormatString( "%p", pAddress ) );
-
-					DisplayListItems( ( *pMainForm )->ExcpList3, ExceptionList );
-
-					break;
-				}
-				case 3:
-				{
-					( *pMainForm )->tp_4->Text = Utils::CharStrToSystemStr( Utils::FormatString( "%p", pAddress ) );
-
-					DisplayListItems( ( *pMainForm )->ExcpList4, ExceptionList );
-
-					break;
-				}
-				default:
-					break;
-				}
-			} );
+					DisplayListItems( ( *g_MainForm )->GetLbFromIndex( pBpInfo.Pos ), ExceptionList );
+				} 
+			);
 		}
 	} );
-	
+}
+
+System::Void FrmMain::ChangeTPIndex( int index, System::String^ str )
+{
+	tabPages[ index ]->Text = str;
+}
+
+Windows::Forms::ListBox^ FrmMain::GetLbFromIndex( int index )
+{
+	return listBoxes[ index ];
 }
 
 System::Void FrmMain::Timer1_Tick( System::Object^ sender, System::EventArgs^ e )
 {
-
-	List( );
-	//for ( const auto& [ Address, BpInfo ] : VExDebugger::GetBreakpointList( ) )
-	//{
-	//	if ( !Address )
-	//		continue;
-
-	//	if ( BpInfo.Method != BkpMethod::Hardware )
-	//		continue;
-
-	//	auto ItExceptionList  = VExDebugger::GetAssocExceptionList( ).find( Address );
-
-	//	if ( ItExceptionList == VExDebugger::GetAssocExceptionList( ).end( ) )
-	//		continue;
-
-	//	auto& ExceptionList     = ItExceptionList->second;
-
-	//	switch ( BpInfo.Pos )
-	//	{
-	//	case 0:
-	//	{
-	//		tp_1->Text = Utils::CharStrToSystemStr( Utils::FormatString( "%p", Address ) );
-
-	//		DisplayListItems( ExcpList1, ExceptionList );
-
-	//		break;
-	//	}
-	//	case 1:
-	//	{
-	//		tp_2->Text = Utils::CharStrToSystemStr( Utils::FormatString( "%p", Address ) );
-
-	//		DisplayListItems( ExcpList2, ExceptionList );
-
-	//		break;
-	//	}
-	//	case 2:
-	//	{
-	//		tp_3->Text = Utils::CharStrToSystemStr( Utils::FormatString( "%p", Address ) );
-
-	//		DisplayListItems( ExcpList3, ExceptionList );
-
-	//		break;
-	//	}
-	//	case 3:
-	//	{
-	//		tp_4->Text = Utils::CharStrToSystemStr( Utils::FormatString( "%p", Address ) );
-
-	//		DisplayListItems( ExcpList4, ExceptionList );
-
-	//		break;
-	//	}
-	//	default:
-	//		break;
-	//	}
-	//}
+	ListExceptions( );
 }

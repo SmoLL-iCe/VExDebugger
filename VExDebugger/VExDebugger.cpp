@@ -4,8 +4,10 @@
 #include "Tools/WinWrap.h"
 #include "Tools/Logs.h"
 #include "Config/Config.h"
-#include "Headers/LogsException.hpp"
 #include "HwBkp/MgrHwBkp.h"
+#include "HwBkp/HwBkpHandler.h"
+
+bool					isCsInitialized				= false;
 
 CRITICAL_SECTION		HandlerCS					= { };
 
@@ -25,6 +27,9 @@ std::map<uintptr_t, BkpInfo>& VExInternal::GetBreakpointList( )
 
 void VExDebugger::CallAssocExceptionList( const std::function<void( TAssocExceptionList& )>& lpEnumFunc )
 {
+	if ( !isCsInitialized )
+		return;
+	
 	EnterCriticalSection( &HandlerCS );
 
 	if ( lpEnumFunc )
@@ -35,6 +40,9 @@ void VExDebugger::CallAssocExceptionList( const std::function<void( TAssocExcept
 
 void VExDebugger::CallBreakpointList( const std::function<void( TBreakpointList& )>& lpEnumFunc )
 {
+	if ( !isCsInitialized )
+		return;
+
 	EnterCriticalSection( &HandlerCS );
 
 	if ( lpEnumFunc )
@@ -47,95 +55,40 @@ void*		p_VExDebugger			= nullptr;
 
 void*		OriginalHandlerFilter	= nullptr;
 
-//https://en.wikipedia.org/wiki/X86_debug_register
-
-#define SET_TRAP_FLAG(ctx)			ctx->EFlags |= (1 << 8)
-
-#define UNSET_TRAP_FLAG(ctx)		ctx->EFlags &= ~(1 << 8)
-
-#define SET_RESUME_FLAG(ctx)		ctx->EFlags |= 0x10000u // RF
-
-#define IS_TRAP_FLAG(ctx)			( ctx->Dr6 & 0x4000 ) // check is TF
-
-#define UNSET_HWBKP_POS( ctx, pos ) ( &ctx->Dr0)[pos] = 0; \
-ctx->Dr7 &= ~( 1 << pos );
-
-#define SET_TRAP_FLAG_STEP_OUT(ctx) ctx->EFlags &= ~0x100;
-
-long __stdcall HandlerFilter( EXCEPTION_POINTERS* pExceptionInfo )
+long __stdcall InitialHandler( EXCEPTION_POINTERS* pExceptionInfo )
 {
+	if ( !pExceptionInfo || !pExceptionInfo->ExceptionRecord || !pExceptionInfo->ContextRecord )
+	{ // maybe trap
+
+		if ( OriginalHandlerFilter )
+			return reinterpret_cast<long (__stdcall*)( EXCEPTION_POINTERS* )>( OriginalHandlerFilter )( pExceptionInfo );
+		
+		return EXCEPTION_EXECUTE_HANDLER;
+	}
+
 	EnterCriticalSection( &HandlerCS );
-	
-	constexpr auto	STATUS_WX86_SINGLE_STEP = 0x4000001E; // CE check this old flag too
-
-	auto* const		pContext				= pExceptionInfo->ContextRecord;
-
-	auto* const		pExceptionRec			= pExceptionInfo->ExceptionRecord;
-
-	auto const		ExceptionAddress		= reinterpret_cast<uintptr_t>( pExceptionRec->ExceptionAddress );
 
 	//DisplayContextLogs( pContext, pExceptionRec ); // tests
 
-	if ( EXCEPTION_SINGLE_STEP == pExceptionRec->ExceptionCode || 
-		STATUS_WX86_SINGLE_STEP == pExceptionRec->ExceptionCode )
-	{
-		for ( const auto & [ Address, BpInfo ] : BreakpointList )
-		{
-			if ( BpInfo.Method != BkpMethod::Hardware )             // only support hardware breakpoint
-				continue;
-
-
-			if ( ( pContext->Dr6 & ( static_cast<uintptr_t>( 1 ) << BpInfo.Pos ) ) == 0 ) // check if this position was setted
-				continue;
-
-			const auto itHwBkp		= MgrHwBkp::GetHwBrkpList( ).find( Address );
-
-			if ( itHwBkp == MgrHwBkp::GetHwBrkpList( ).end( ) )
-				continue;
-
-			const auto HwBkp		= itHwBkp->second;
-
-			// if it's doesnt have this address, add or update info
-			auto & ExceptionList	= AddressAssocExceptionList[ Address ];
-
-			auto& Info				= ExceptionList[ 
-				( HwBkp->GetTriggerType( ) != BkpTrigger::Execute ) ? ExceptionAddress : GetCurrentThreadId( ) 
-			];
-		
-			++Info.Details.Count;                               // inc occurrences
-
-			Info.Details.ThreadId	= GetCurrentThreadId( );    // last thread triggered
-
-			Info.Details.Ctx		= *pContext;                // save context
-			
-			if ( Config::i( )->m_Logs )
-				DisplayContextLogs( pContext, pExceptionRec );  // save in txt
-
-			if ( HwBkp->GetTriggerType( ) == BkpTrigger::Execute )
-			{
-				SET_RESUME_FLAG( pContext );
-			}
-
-			LeaveCriticalSection( &HandlerCS );
-
-			return EXCEPTION_CONTINUE_EXECUTION;
-		}
-	}
-
-	if ( OriginalHandlerFilter )
+	auto Result = MgrHwBkp::Handler( pExceptionInfo );
+	
+	if ( OriginalHandlerFilter && EXCEPTION_EXECUTE_HANDLER == Result )
 	{
 		LeaveCriticalSection( &HandlerCS );
 
-		return reinterpret_cast<decltype( HandlerFilter )*>( OriginalHandlerFilter )( pExceptionInfo );
+		return reinterpret_cast<decltype( InitialHandler )*>( OriginalHandlerFilter )( pExceptionInfo );
 	}
 
 	LeaveCriticalSection( &HandlerCS );
 
-	return EXCEPTION_EXECUTE_HANDLER;
+	return Result;
 }
 
 bool VExDebugger::StartMonitorAddress( const uintptr_t Address, const BkpTrigger Trigger, const BkpSize Size )
 {
+	if ( !isCsInitialized )
+		return false;
+
 	EnterCriticalSection( &HandlerCS );
 
 	auto r = MgrHwBkp::SetBkpAddressInAllThreads( Address, Trigger, Size );
@@ -147,6 +100,9 @@ bool VExDebugger::StartMonitorAddress( const uintptr_t Address, const BkpTrigger
 
 void VExDebugger::RemoveMonitorAddress( const uintptr_t Address )
 {
+	if ( !isCsInitialized )
+		return;
+
 	EnterCriticalSection( &HandlerCS );
 
 	MgrHwBkp::RemoveBkpAddressInAllThreads( Address );
@@ -154,16 +110,17 @@ void VExDebugger::RemoveMonitorAddress( const uintptr_t Address )
 	LeaveCriticalSection( &HandlerCS );
 }
 
-bool VExDebugger::Init( HandlerType Type, bool SpoofHwbkp, bool Logs )
+bool VExDebugger::Init( HandlerType Type, bool Logs )
 {
-	if ( HandlerCS.SpinCount == 0 )
+	if ( !isCsInitialized )
 	{
 		InitializeCriticalSection( &HandlerCS );
+		isCsInitialized = true;
 	}
 
 	Config::i( )->m_HandlerType = Type;
 
-	Config::i( )->m_SpoofHwbkp	= SpoofHwbkp;
+	Config::i( )->m_SpoofHwbkp	= false;
 
 	Config::i( )->m_Logs		= Logs;
 
@@ -171,21 +128,24 @@ bool VExDebugger::Init( HandlerType Type, bool SpoofHwbkp, bool Logs )
 		return false;
 
 	nLog::Init( );
+	bool Result = false;
 
 	switch ( Type )
 	{
 	case HandlerType::VectoredExceptionHandler:
-		p_VExDebugger = RtlAddVectoredExceptionHandler( 1, HandlerFilter );
+		p_VExDebugger = RtlAddVectoredExceptionHandler( 1, InitialHandler );
+		Result = ( p_VExDebugger != nullptr );
 		break;
 	case HandlerType::UnhandledExceptionFilter:
-		p_VExDebugger = SetUnhandledExceptionFilter( HandlerFilter );
+		p_VExDebugger = SetUnhandledExceptionFilter( InitialHandler );
+		Result = ( p_VExDebugger != nullptr );
 		break;
 	case HandlerType::VectoredExceptionHandlerIntercept:
-		return VEH_Internal::InterceptVEHHandler( HandlerFilter, OriginalHandlerFilter );
+		return VEH_Internal::InterceptVEHHandler( InitialHandler, OriginalHandlerFilter );
 	default:
-		return false;
+		break;
 	}
 
-	return true;
+	return Result;
 }
 

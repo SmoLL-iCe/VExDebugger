@@ -28,6 +28,15 @@
 
 #pragma comment(lib, IMPORT_LIB)
 
+
+#define READ_TEST
+#define WRITE_TEST
+
+#define READ_MOD_TEST
+#define WRITE_MOD_TEST
+
+#define LOAD_MODULE
+
 int random( int min, int max )
 {
 	static bool first = true;
@@ -157,12 +166,35 @@ std::vector<uint8_t*> GetCodeCaves( )
 	return listPtr;
 }
 
-uint8_t* AllocMemPage = 0;
-uint8_t* RelativePointPtr = 0;
+uint8_t* AllocMemPage		= 0;
+uint8_t* RelativePointPtr	= 0;
+auto pFuncExecHit			= reinterpret_cast<uint8_t( __fastcall* )( uint8_t* )>( RelativePointPtr + 0x300 );
 
-void func( )
+void CreatePageTests( )
 {
-	VExDebugger::Init( HandlerType::VectoredExceptionHandler, false, true );
+	auto RandomOffset = random( 0x10, 0x200 );
+
+	AllocMemPage = reinterpret_cast<uint8_t*>( VirtualAlloc( 0, 0x1000, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE ) );
+
+	if ( !AllocMemPage )
+	{
+		std::cout << "insufficient mem res\n";
+		return;
+	}
+
+	RelativePointPtr = AllocMemPage + RandomOffset;
+
+	*reinterpret_cast<uint64_t*>( RelativePointPtr ) = 0x9090C300001337B8;
+
+	*(uint32_t*)( RelativePointPtr + 0x300 ) = 0x90C3018A;
+
+	printf( "AllocMemPage: 0x%p\n", AllocMemPage );
+	printf( "RelativePointPtr: 0x%p\n", RelativePointPtr );
+}
+
+void SetBreakPointsFunc( )
+{
+	VExDebugger::Init( HandlerType::UnhandledExceptionFilter, true );
 
 	VExDebugger::StartMonitorAddress( RelativePointPtr + 0x100, BkpTrigger::ReadWrite, BkpSize::Size_2 );
 
@@ -173,13 +205,8 @@ void func( )
 	VExDebugger::StartMonitorAddress( RelativePointPtr, BkpTrigger::ReadWrite, BkpSize::Size_1 );
 
 }
-//#define READ_TEST
-//#define WRITE_TEST
 
-#define READ_MOD_TEST
-#define WRITE_MOD_TEST
-
-void test_mod( )
+void TestMod( )
 {
 #if defined( READ_MOD_TEST ) || defined( WRITE_MOD_TEST )
 
@@ -230,7 +257,7 @@ void test_mod( )
 #endif
 }
 
-void test_page( )
+void TestPage( )
 {
 #if defined( READ_TEST ) || defined( WRITE_TEST )
 
@@ -272,48 +299,8 @@ void test_page( )
 #endif
 }
 
-#pragma optimize( "", off )
-int main( )
+void TestExec( )
 {
-    std::cout << "Hello World!\n";
-
-	auto RandomOffset = random( 0x10, 0x200 );
-
-	AllocMemPage = reinterpret_cast<uint8_t*>( VirtualAlloc( 0, 0x1000, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE ) );
-
-	if ( !AllocMemPage )
-	{
-		std::cout << "insufficient mem res\n";
-		return getchar( );
-	}
-
-	printf( "AllocMemPage: 0x%p\n", AllocMemPage );
-
-	RelativePointPtr = AllocMemPage + RandomOffset;
-
-	printf( "RelativePointPtr: 0x%p\n", RelativePointPtr );
-
-	*reinterpret_cast<uint64_t*>( RelativePointPtr ) = 0x9090C300001337B8;
-
-	Sleep( 1000 );
-
-	*(uint32_t*)( RelativePointPtr + 0x300 ) = 0x90C3018A;
-
-	auto pFuncExecHit = reinterpret_cast<uint8_t( __fastcall* )( uint8_t* )>( RelativePointPtr + 0x300 );
-
-	CreateThread( nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>( func ), nullptr, 0, nullptr );
-
-	Sleep( 2000 );
-
-	//CONTEXT ctx{};
-
-	//ctx.ContextFlags = CONTEXT_DEBUG_REGISTERS;
-	//ctx.ContextFlags = CONTEXT_ALL;
-
-	//GetThreadContext( GetCurrentThread( ), &ctx );
-
-	//printf( "read point: %llX\n", *(uint64_t*)( RelativePointPtr ) );
-
 	for ( size_t i = 0; i < 3; i++ )
 	{
 
@@ -322,10 +309,36 @@ int main( )
 
 		printf( "ret: %02X\n", t );
 	}
+}
 
-	test_mod( );
 
-	//test_page( );
+#pragma optimize( "", off )
+int main( )
+{
+    std::cout << "Hello World!\n";
+	CreatePageTests( );
+
+	system( "pause" );
+
+#ifndef LOAD_MODULE
+
+	CreateThread( nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>( SetBreakPointsFunc ), nullptr, 0, nullptr );
+#else
+	//auto h = LoadLibrary( L"ImVExDebugger_x" ARCH ".dll" );
+	auto h = LoadLibrary( L"dotNetForms_x" ARCH ".dll" );
+	printf( "H: %p\n", h );
+#endif
+
+	system( "pause" );
+	printf( "RelativePointPtr %d\n", *reinterpret_cast<uint32_t*>( RelativePointPtr ) );
+
+	//TestExec( );
+
+	//TestMod( );
+
+	//TestPage( );
+
+#ifndef LOAD_MODULE
 
 	VExDebugger::CallBreakpointList( []( TBreakpointList BreakpointList ) -> void {
 
@@ -396,7 +409,7 @@ int main( )
 			} );
 		}
 	} );
-
+#endif
 
 
     return getchar( );

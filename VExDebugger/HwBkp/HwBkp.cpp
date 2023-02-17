@@ -181,7 +181,7 @@ bool HwBkp::ApplyHwbkpDebugConfig( const HANDLE hThread, uint32_t ThreadId, bool
 	// set changes
 	if ( !WinWrap::SetContextThread( hThread, &Ctx ) )
 	{
-		printf( "fail set context\n" );
+		log_file( "fail set context" );
 		return false;
 	}
 

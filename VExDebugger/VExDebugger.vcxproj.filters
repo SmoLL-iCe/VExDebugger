@@ -64,6 +64,9 @@
     <ClInclude Include="Headers\VExInternal.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="HwBkp\HwBkpHandler.h">
+      <Filter>VExDebugger\HwBkp</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="VExDebugger.cpp">
@@ -88,6 +91,9 @@
       <Filter>VExDebugger\Config</Filter>
     </ClCompile>
     <ClCompile Include="HwBkp\MgrHwBkp.cpp">
+      <Filter>VExDebugger\HwBkp</Filter>
+    </ClCompile>
+    <ClCompile Include="HwBkp\HwBkpHandler.cpp">
       <Filter>VExDebugger\HwBkp</Filter>
     </ClCompile>
   </ItemGroup>
