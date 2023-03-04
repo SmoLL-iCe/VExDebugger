@@ -4,7 +4,7 @@
 #include "HwBkp.h"
 
 namespace MgrHwBkp 
-{
+{ 
 	bool SetBkpAddressInAllThreads( const uintptr_t Address, const BkpTrigger Type, const BkpSize Size );
 	void RemoveBkpAddressInAllThreads( const uintptr_t Address );
 	void UpdateInfo( );

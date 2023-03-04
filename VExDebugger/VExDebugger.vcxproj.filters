@@ -23,6 +23,9 @@
     <Filter Include="VExDebugger\Veh">
       <UniqueIdentifier>{0b69ead5-57b3-4367-a48c-f9dd06823f32}</UniqueIdentifier>
     </Filter>
+    <Filter Include="VExDebugger\SpoofDbg">
+      <UniqueIdentifier>{89bfa756-f3a2-44d1-a0b5-ccd947ba86ce}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\import\include\VExDebugger.h">
@@ -67,6 +70,12 @@
     <ClInclude Include="HwBkp\HwBkpHandler.h">
       <Filter>VExDebugger\HwBkp</Filter>
     </ClInclude>
+    <ClInclude Include="SpoofDbg\SpoofDbg.h">
+      <Filter>VExDebugger\SpoofDbg</Filter>
+    </ClInclude>
+    <ClInclude Include="SpoofDbg\DoHook.h">
+      <Filter>VExDebugger\SpoofDbg</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="VExDebugger.cpp">
@@ -96,10 +105,19 @@
     <ClCompile Include="HwBkp\HwBkpHandler.cpp">
       <Filter>VExDebugger\HwBkp</Filter>
     </ClCompile>
+    <ClCompile Include="SpoofDbg\SpoofDbg.cpp">
+      <Filter>VExDebugger\SpoofDbg</Filter>
+    </ClCompile>
+    <ClCompile Include="SpoofDbg\DoHook.cpp">
+      <Filter>VExDebugger\SpoofDbg</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <MASM Include="veh\vex64.asm">
       <Filter>VExDebugger\Veh</Filter>
+    </MASM>
+    <MASM Include="Tools\syscallx64.asm">
+      <Filter>VExDebugger\Tools</Filter>
     </MASM>
   </ItemGroup>
 </Project>

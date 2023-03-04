@@ -3,8 +3,10 @@
 #include "HwBkp.h"
 #include "../Tools/Logs.h"
 #include "../Tools/WinWrap.h"
+#include "MgrHwBkp.h"
 
 HwBkp* g_CurrentHwBreakPt = nullptr;
+
 
 HwBkp::HwBkp( const uintptr_t Address, const BkpSize Size, const BkpTrigger Trigger, const bool Add )
 {

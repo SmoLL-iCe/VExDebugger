@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <iostream>
+#include <vector>
 
 // Você pode acessar os bits B0 a B3 do registrador DR6 na thread context usando C++ da seguinte maneira:
 void PrintDR6Bits1(CONTEXT &ctx)
@@ -80,6 +81,7 @@ void PrintDR7RW(CONTEXT &ctx, int index)
 }
 
 // Em C++, voc� pode definir o bit TF (Trap Flag) no registrador EFLAGS da thread context para fazer um "step out" ou "step into" da seguinte maneira:
+
 void SetEFlagsTF(CONTEXT &ctx, bool stepInto)
 {
     DWORD eflags = ctx.EFlags;
@@ -94,14 +96,9 @@ void SetEFlagsTF(CONTEXT &ctx, bool stepInto)
     ctx.EFlags = eflags;
 }
 
+
 int main()
 {
-
-    CONTEXT ctx{};
-
-    ctx.ContextFlags = CONTEXT_ALL;
-
-    GetThreadContext(GetCurrentThread(), &ctx);
 
     return getchar();
 }

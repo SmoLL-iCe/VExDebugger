@@ -387,6 +387,8 @@
     <ClInclude Include="HwBkp\HwBkpHandler.h" />
     <ClInclude Include="HwBkp\MgrHwBkp.h" />
     <ClInclude Include="HwBkp\Threads\ManagerThreads.h" />
+    <ClInclude Include="SpoofDbg\DoHook.h" />
+    <ClInclude Include="SpoofDbg\SpoofDbg.h" />
     <ClInclude Include="Tools\Logs.h" />
     <ClInclude Include="Tools\ntos.h" />
     <ClInclude Include="Tools\WinWrap.h" />
@@ -399,12 +401,32 @@
     <ClCompile Include="HwBkp\HwBkpHandler.cpp" />
     <ClCompile Include="HwBkp\MgrHwBkp.cpp" />
     <ClCompile Include="HwBkp\Threads\ManagerThreads.cpp" />
+    <ClCompile Include="SpoofDbg\DoHook.cpp" />
+    <ClCompile Include="SpoofDbg\SpoofDbg.cpp" />
     <ClCompile Include="Tools\Logs.cpp" />
     <ClCompile Include="Tools\WinWrap.cpp" />
     <ClCompile Include="veh\VEH.cpp" />
     <ClCompile Include="VExDebugger.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <MASM Include="Tools\syscallx64.asm">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugMD|x64'">false</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='DebugMD|x64'">true</DeploymentContent>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseMD|x64'">false</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='ReleaseMD|x64'">true</DeploymentContent>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</DeploymentContent>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugMD|Win32'">true</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='DebugMD|Win32'">false</DeploymentContent>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseMD|Win32'">true</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='ReleaseMD|Win32'">false</DeploymentContent>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</DeploymentContent>
+    </MASM>
     <MASM Include="veh\vex64.asm">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseMD|x64'">false</ExcludedFromBuild>

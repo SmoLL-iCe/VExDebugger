@@ -5,6 +5,7 @@
 #include <TlHelp32.h>
 #include <psapi.h>
 #include "color.hpp"
+#include "../../VExDebugger/Tools/ntos.h"
 
 #define MM "MD"
 #ifdef _MT
@@ -35,7 +36,7 @@
 #define READ_MOD_TEST
 #define WRITE_MOD_TEST
 
-#define LOAD_MODULE
+//#define LOAD_MODULE
 
 int random( int min, int max )
 {
@@ -194,15 +195,15 @@ void CreatePageTests( )
 
 void SetBreakPointsFunc( )
 {
-	VExDebugger::Init( HandlerType::UnhandledExceptionFilter, true );
+	VExDebugger::Init( HandlerType::VectoredExceptionHandler, true );
 
 	VExDebugger::StartMonitorAddress( RelativePointPtr + 0x100, BkpTrigger::ReadWrite, BkpSize::Size_2 );
 
-	VExDebugger::StartMonitorAddress( RelativePointPtr + 0x200, BkpTrigger::ReadWrite, BkpSize::Size_1 );
+	//VExDebugger::StartMonitorAddress( RelativePointPtr + 0x200, BkpTrigger::ReadWrite, BkpSize::Size_1 );
 
-	VExDebugger::StartMonitorAddress( RelativePointPtr + 0x300, BkpTrigger::Execute, BkpSize::Size_1 );
+	//VExDebugger::StartMonitorAddress( RelativePointPtr + 0x300, BkpTrigger::Execute, BkpSize::Size_1 );
 
-	VExDebugger::StartMonitorAddress( RelativePointPtr, BkpTrigger::ReadWrite, BkpSize::Size_1 );
+	//VExDebugger::StartMonitorAddress( RelativePointPtr, BkpTrigger::ReadWrite, BkpSize::Size_1 );
 
 }
 
@@ -303,112 +304,300 @@ void TestExec( )
 {
 	for ( size_t i = 0; i < 3; i++ )
 	{
-
 		uintptr_t val = 12;
+
 		auto t = pFuncExecHit( (uint8_t*)&val );
 
 		printf( "ret: %02X\n", t );
 	}
 }
 
+//VOID
+//NTAPI
+//RtlRaiseException(
+//	_In_ PEXCEPTION_RECORD ExceptionRecord );
+//
+//
+//VOID
+//NTAPI
+//RtlRaiseStatus(
+//	_In_ NTSTATUS Status );
+//
+//
+//NTSTATUS
+//NTAPI
+//NtRaiseException(
+//	_In_ PEXCEPTION_RECORD ExceptionRecord,
+//	_In_ PCONTEXT ContextRecord,
+//	_In_ BOOLEAN FirstChance );
+
+//void __stdcall mRaiseException(
+//	DWORD dwExceptionCode,
+//	DWORD dwExceptionFlags,
+//	DWORD nNumberOfArguments,
+//	const ULONG_PTR* lpArguments )
+//{
+//	DWORD v4; // eax
+//	EXCEPTION_RECORD ExceptionRecord{}; 
+//
+//	HIDWORD( ExceptionRecord.ExceptionRecord ) = 0;
+//	ExceptionRecord.ExceptionCode = dwExceptionCode;
+//	*(QWORD*)&ExceptionRecord.ExceptionFlags = dwExceptionFlags & 1;
+//	ExceptionRecord.ExceptionAddress = RaiseException;
+//	if ( lpArguments )
+//	{
+//		v4 = 15;
+//		if ( nNumberOfArguments <= 0xF )
+//			v4 = nNumberOfArguments;
+//		ExceptionRecord.NumberParameters = v4;
+//		memcpy( ExceptionRecord.ExceptionInformation, lpArguments, 8i64 * v4 );
+//	}
+//	else
+//	{
+//		ExceptionRecord.NumberParameters = 0;
+//	}
+//	RtlRaiseException( &ExceptionRecord );
+//}
+
+const char* drs[]
+{
+	"Dr0",
+	"Dr1",
+	"Dr2",
+	"Dr3",
+	"Dr6",
+	"Dr7",
+};
+
+LONG NTAPI FHandler( EXCEPTION_POINTERS* ExceptionInfo )
+{
+	//printf( "ExceptionCode 0x%lX\n", ExceptionInfo->ExceptionRecord->ExceptionCode );
+	for ( size_t i = 0; i < 6; i++ )
+	{
+		auto pDrCtx		= ( &ExceptionInfo->ContextRecord->Dr0 );
+
+		auto Ptr		= pDrCtx[ i ];
+
+		if ( Ptr )
+		{
+			std::cout << color::start( "Light Red" );
+
+			printf( "Handler, Hardware Breakpoint Detected %s, 0x%p\n", drs[ i ], Ptr );
+
+			std::cout << color::end( );
+		}
+
+	}
+
+	return EXCEPTION_CONTINUE_EXECUTION;
+}
+
+LONG NTAPI ContinueFHandler( EXCEPTION_POINTERS* ExceptionInfo )
+{
+	if ( EXCEPTION_SINGLE_STEP )
+	{
+	}
+
+	for ( size_t i = 0; i < 6; i++ )
+	{
+		auto pDrCtx = ( &ExceptionInfo->ContextRecord->Dr0 );
+
+		auto Ptr = pDrCtx[ i ];
+
+		if ( Ptr )
+		{
+			std::cout << color::start( "Light Red" );
+
+			printf( "Continue, Hardware Breakpoint Detected %s, 0x%p\n", drs[ i ], Ptr );
+
+
+			std::cout << color::end( );
+		}
+	}
+
+
+	return EXCEPTION_CONTINUE_EXECUTION;
+}
+
+#pragma optimize( "", off )
+void the_dividi( int v )
+{
+	printf( "%d\n", 50 / v );
+}
+
+void stackOverflow( ) {
+	stackOverflow( );
+}
+#pragma optimize( "", on )
+
+void TryDetectHardwareBkp( )
+{
+	while ( true )
+	{
+
+
+		printf( "RelativePointPtr %d\n", *reinterpret_cast<uint32_t*>( RelativePointPtr + 0x100 ) );
+
+		std::cout << "dividi\n";
+		Sleep( 5000 );
+		//RaiseException( EXCEPTION_BREAKPOINT, 123, 0, nullptr );
+
+		//Sleep( 1000 );
+		//RaiseException( EXCEPTION_ACCESS_VIOLATION, 0x1337, 0, nullptr );
+
+		//Sleep( 1000 );
+		//RaiseException( EXCEPTION_GUARD_PAGE, 0x1337, 0, nullptr );
+
+		Sleep( 1000 );
+		CONTEXT ctx{};
+
+		ctx.ContextFlags = CONTEXT_DEBUG_REGISTERS;
+		auto s = GetThreadContext( (HANDLE)-2, &ctx );
+
+		printf( "GetThreadContext %d\n", s );
+		for ( size_t i = 0; i < 6; i++ )
+		{
+			auto pDrCtx = ( &ctx.Dr0 );
+
+			auto Ptr = pDrCtx[ i ];
+
+			if ( Ptr )
+			{
+				std::cout << color::start( "Light Red" );
+
+				printf( "GetThreadContext, Hardware Breakpoint Detected %s, 0x%p\n", drs[ i ], Ptr );
+
+				std::cout << color::end( );
+			}
+		}
+	
+	}
+
+}
+
+void testDetectHardwareBkp( )
+{
+	std::cout << "testDetectHardwareBkp\n";
+
+	AddVectoredContinueHandler( 1, ContinueFHandler );
+
+	AddVectoredExceptionHandler( 1, FHandler );
+
+	CreateThread( nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>( TryDetectHardwareBkp ), nullptr, 0, nullptr );
+
+	Sleep( 1000 );
+
+}
 
 #pragma optimize( "", off )
 int main( )
 {
     std::cout << "Hello World!\n";
+
 	CreatePageTests( );
 
-	system( "pause" );
+	//system( "pause" );
 
-#ifndef LOAD_MODULE
+	testDetectHardwareBkp( );
 
-	CreateThread( nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>( SetBreakPointsFunc ), nullptr, 0, nullptr );
-#else
-	//auto h = LoadLibrary( L"ImVExDebugger_x" ARCH ".dll" );
-	auto h = LoadLibrary( L"dotNetForms_x" ARCH ".dll" );
+
+#ifdef LOAD_MODULE
+	auto h = LoadLibrary( L"ImVExDebugger_x" ARCH ".dll" );
+	//auto h = LoadLibrary( L"dotNetForms_x" ARCH ".dll" );
 	printf( "H: %p\n", h );
+#else
+	CreateThread( nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>( SetBreakPointsFunc ), nullptr, 0, nullptr );
 #endif
 
-	system( "pause" );
-	printf( "RelativePointPtr %d\n", *reinterpret_cast<uint32_t*>( RelativePointPtr ) );
+	//system( "pause" );
 
-	//TestExec( );
+	Sleep( 1000 );
 
-	//TestMod( );
 
-	//TestPage( );
+	// TryDetectHardwareBkp( );
+
+	// TestExec( );
+
+	// TestMod( );
+
+	// TestPage( );
 
 #ifndef LOAD_MODULE
 
-	VExDebugger::CallBreakpointList( []( TBreakpointList BreakpointList ) -> void {
+	while ( true )
+	{
+		Sleep( 1000 );
 
-		for ( const auto& [Address, BpInfo] : BreakpointList )
-		{
-			if ( !Address )
-				continue;
+		VExDebugger::CallBreakpointList( []( TBreakpointList BreakpointList ) -> void {
 
-			if ( BpInfo.Method != BkpMethod::Hardware )             // only support hardware breakpoint
-				continue;
+			for ( const auto& [Address, BpInfo] : BreakpointList )
+			{
+				if ( !Address )
+					continue;
 
-			bool Skip = false;
+				if ( BpInfo.Method != BkpMethod::Hardware )             // only support hardware breakpoint
+					continue;
 
-			VExDebugger::CallAssocExceptionList( [&]( TAssocExceptionList AssocExceptionList ) -> void {
+				bool Skip = false;
 
-				auto ItExceptionList = AssocExceptionList.find( Address );
+				VExDebugger::CallAssocExceptionList( [&]( TAssocExceptionList AssocExceptionList ) -> void {
 
-				if ( ItExceptionList == AssocExceptionList.end( ) )
-					return;
+					auto ItExceptionList = AssocExceptionList.find( Address );
+
+					if ( ItExceptionList == AssocExceptionList.end( ) )
+						return;
 				
 
-				auto& ExceptionList = ItExceptionList->second;
+					auto& ExceptionList = ItExceptionList->second;
 
-				std::cout << "\nIndex: " << ( BpInfo.Pos + 1 ) << ", Address: 0x" <<
-					std::hex << std::uppercase << Address << "\n";
-
-
-				for ( const auto& [ExceptionAddress, ExceptionInfo] : ExceptionList )
-				{
-
-					std::cout <<
-						"\tCount " << color::start( "Light Blue" ) <<
-						std::setfill( ' ' ) << std::setw( 8 ) << std::dec << ExceptionInfo.Details.Count <<
-						color::end( );
+					std::cout << "\nIndex: " << ( BpInfo.Pos + 1 ) << ", Address: 0x" <<
+						std::hex << std::uppercase << Address << "\n";
 
 
-					if ( BpInfo.Trigger != BkpTrigger::Execute )
+					for ( const auto& [ExceptionAddress, ExceptionInfo] : ExceptionList )
 					{
-						std::cout << color::start( "Light Green" );
 
-						auto Module = GetModuleInfo( ExceptionAddress );
+						std::cout <<
+							"\tCount " << color::start( "Light Blue" ) <<
+							std::setfill( ' ' ) << std::setw( 8 ) << std::dec << ExceptionInfo.Details.Count <<
+							color::end( );
 
-						if ( !Module.modBaseAddr )
+
+						if ( BpInfo.Trigger != BkpTrigger::Execute )
 						{
-							std::cout << " ExceptionAddress: 0x" << std::hex << std::uppercase << ExceptionAddress << "\n";
+							std::cout << color::start( "Light Green" );
+
+							auto Module = GetModuleInfo( ExceptionAddress );
+
+							if ( !Module.modBaseAddr )
+							{
+								std::cout << " ExceptionAddress: 0x" << std::hex << std::uppercase << ExceptionAddress << "\n";
+							}
+							else
+							{
+								auto Offset = ExceptionAddress - reinterpret_cast<uintptr_t>( Module.modBaseAddr );
+
+								std::cout << " ExceptionAddress: ";
+
+								std::wcout << Module.szModule;
+
+								std::cout << "+0x" << std::hex << std::uppercase << Offset << "\n";
+							}
+
+							std::cout << color::end( );
 						}
 						else
 						{
-							auto Offset = ExceptionAddress - reinterpret_cast<uintptr_t>( Module.modBaseAddr );
 
-							std::cout << " ExceptionAddress: ";
-
-							std::wcout << Module.szModule;
-
-							std::cout << "+0x" << std::hex << std::uppercase << Offset << "\n";
+							std::cout << " ThreadId: " << std::dec << color::start( "Light Green" )
+								<< ExceptionAddress << color::end( ) << "\n";
 						}
-
-						std::cout << color::end( );
 					}
-					else
-					{
 
-						std::cout << " ThreadId: " << std::dec << color::start( "Light Green" )
-							<< ExceptionAddress << color::end( ) << "\n";
-					}
-				}
-
-			} );
-		}
-	} );
+				} );
+			}
+		} );
+	}
 #endif
 
 

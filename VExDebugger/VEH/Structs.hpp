@@ -12,6 +12,7 @@ typedef struct _VECTORED_HANDLER_ENTRY
             ULONG Refs;
             PVOID Handler;
         } Old;
+
         struct
         {
             PVOID Unknown1;

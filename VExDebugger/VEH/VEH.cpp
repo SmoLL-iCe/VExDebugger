@@ -256,6 +256,8 @@ bool VEH_Internal::HookKiUserExceptionDispatcher( void* MyVectoredHandler )
 
 bool VEH_Internal::InterceptVEHHandler( void* VectoredHandler, void*& orig_VectoredHandler )
 {
+	auto r = IniVEH( );
+
 	if ( !LdrpVectorHandlerList )
 		return false;
 
@@ -265,13 +267,15 @@ bool VEH_Internal::InterceptVEHHandler( void* VectoredHandler, void*& orig_Vecto
 
 	auto* const ForwardLink			= VectoredHandlerList->ExecuteHandlerList.Flink;
 
+
 	for ( auto* pLink = ForwardLink; pLink != &VectoredHandlerList->ExecuteHandlerList; pLink = pLink->Flink )
 	{
 		auto* const HandlerEntry	= reinterpret_cast<PVECTORED_HANDLER_ENTRY>( pLink );
 
+
 		void* const DecodedPointer	= ( HandlerEntry->Old.Refs < sizeof( ULONG ) ) ? RtlDecodePointer( HandlerEntry->Old.Handler ) : RtlDecodePointer( HandlerEntry->New.Handler );
 
-		orig_VectoredHandler		= DecodedPointer;
+		//orig_VectoredHandler		= DecodedPointer;
 
         //if ( HandlerEntry->Old.Refs < sizeof( ULONG ) )
         //    *reinterpret_cast<void**>( &HandlerEntry->Old.Handler ) = RtlEncodePointer( VectoredHandler );

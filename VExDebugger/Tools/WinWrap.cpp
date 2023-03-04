@@ -1,129 +1,233 @@
+
 #include "WinWrap.h"
 #include "Logs.h"
-#include "ntos.h"
 #include "../Headers/Header.h"
 
+#define GET_FUNC(name) i##name.OriginalPtr	= GetExportAddress( ntdll, #name ); \
+	if ( !i##name.OriginalPtr ) { \
+		log_file( "[-] Failed to get export function [%s]\n", #name ); \
+		return false; \
+	}else{ \
+		i##name.UsePtr = i##name.OriginalPtr; \
+		i##name.SyscallId = getSysCallId( i##name.OriginalPtr ); \
+		if ( i##name.SyscallId ) \
+			i##name.UsePtr = (uint8_t*)SysCallAsm; \
+		else \
+			log_file( "[-] Failed to get syscall id [%s]\n", #name ); \
+		ListWindowFunc[ #name ] = &i##name; \
+	}
 
+#ifdef _WIN64
+using WinSysCall = NTSTATUS( __stdcall* )( ... );
+#define THE_CALL( ptr, ...) r_cast<WinSysCall>( ptr )( __VA_ARGS__ )
+#else
+using WinSysCall = NTSTATUS( __cdecl* )( ... );
+#define THE_CALL( ptr, ...) r_cast<WinSysCall>( ptr )( 0, __VA_ARGS__ )
+#endif
 
-bool is_valid_range( void* p_address, void* mod_base, const size_t size )
+BYTE* GetExportAddress( HMODULE hModule, const char* exportName )
 {
-	return ( reinterpret_cast<uintptr_t>( p_address ) > reinterpret_cast<uintptr_t>( mod_base ) && 
-		reinterpret_cast<uintptr_t>( p_address ) < ( reinterpret_cast<uintptr_t>( mod_base ) + size ) );
-}
+	auto pModule = (BYTE*)hModule;
+	IMAGE_DOS_HEADER* dosHeader = (IMAGE_DOS_HEADER*)hModule;
+	IMAGE_NT_HEADERS* ntHeaders = (IMAGE_NT_HEADERS*)( pModule + dosHeader->e_lfanew );
 
-DWORD dwMZ_PE00 = 0x5A4D + 0x00004550;
-uint32_t get_sys_call_64( void* mod_base, const char* obf_func_name )
-{
-	auto* const u8_mod				= static_cast<uint8_t*>( mod_base );
+	IMAGE_DATA_DIRECTORY* exportDirectory = &ntHeaders->OptionalHeader.DataDirectory[ IMAGE_DIRECTORY_ENTRY_EXPORT ];
+	IMAGE_EXPORT_DIRECTORY* exportDirectoryData = (IMAGE_EXPORT_DIRECTORY*)( pModule + exportDirectory->VirtualAddress );
 
-	if ( !mod_base )
-		return 0;
+	DWORD* nameTable = (DWORD*)( pModule + exportDirectoryData->AddressOfNames );
+	WORD* ordinalTable = (WORD*)( pModule + exportDirectoryData->AddressOfNameOrdinals );
+	DWORD* functionTable = (DWORD*)( pModule + exportDirectoryData->AddressOfFunctions );
 
-	auto* const p_img_dos			= static_cast<PIMAGE_DOS_HEADER>( mod_base );
+	for ( DWORD i = 0; i < exportDirectoryData->NumberOfNames; i++ ) {
+		const char* name = (const char*)( pModule + nameTable[ i ] );
 
-	if ( !p_img_dos || !p_img_dos->e_lfanew )
-		return 0;
-
-	auto* const p_img_nt			= reinterpret_cast<PIMAGE_NT_HEADERS>( u8_mod + p_img_dos->e_lfanew );
-
-	if ( !p_img_nt )
-		return 0;
-
-	const auto dw_flag				= p_img_dos->e_magic + p_img_nt->Signature;
-
-	if ( dwMZ_PE00 != dw_flag )
-		return 0;
-
-	const auto bin_size				= p_img_nt->OptionalHeader.SizeOfImage;
-
-	auto* const p_img_exp_dir = reinterpret_cast<PIMAGE_EXPORT_DIRECTORY>( u8_mod +
-		p_img_nt->OptionalHeader.DataDirectory[ IMAGE_DIRECTORY_ENTRY_EXPORT ].VirtualAddress );
-
-	if ( !p_img_exp_dir || !is_valid_range( p_img_exp_dir, mod_base, bin_size ) )
-		return 0;
-
-	auto* const u32_address			= reinterpret_cast<uint32_t*>( u8_mod + p_img_exp_dir->AddressOfFunctions		);
-
-	auto* const u32_name			= reinterpret_cast<uint32_t*>( u8_mod + p_img_exp_dir->AddressOfNames			);
-
-	auto* const u32_ordinal			= reinterpret_cast<uint16_t*>( u8_mod + p_img_exp_dir->AddressOfNameOrdinals	);
-
-	if ( 
-		!is_valid_range( u32_address,	mod_base, bin_size ) || 
-		!is_valid_range( u32_name,		mod_base, bin_size ) || 
-		!is_valid_range( u32_ordinal,	mod_base, bin_size ) )
-		return 0;
-
-	uint8_t p_buff[32] = { 0 };
-	/* 
-	 *  4C 8B D1              - mov r10,rcx
-	 *  B8 XX000000           - mov eax,000000XX
-	 */
-	const uint8_t p_sig[4] = { 0x4C, 0x8B, 0xD1, 0xB8 };
-
-	for ( DWORD i = 0; i < p_img_exp_dir->NumberOfFunctions; i++ )
-	{
-		auto* const p_address		= reinterpret_cast<uint8_t*>( u8_mod + u32_address[ u32_ordinal[ i ] ] );
-
-		auto* const func_name		= reinterpret_cast<char*>( u8_mod + u32_name[ i ] );
-
-		if ( 
-			!is_valid_range( func_name, mod_base, bin_size ) || 
-			!is_valid_range( p_address, mod_base, bin_size ) )
-			continue;
-		
-		if ( !strcmp( func_name, obf_func_name ) )
-		{
-			memcpy(&p_buff, p_address, sizeof p_buff);
-			for (auto x = 0; x < static_cast<int>( sizeof p_sig ); x++)
-			{
-
-				printf( "\t   %p\t%s\n", p_address, func_name );
-				//if ( p_buff[ x ] != p_sig[ x ] )
-				//	break;
-
-				//if ( x == sizeof( p_sig ) - 1 )
-				//	//
-				//	return *reinterpret_cast<uint32_t*>( &p_buff[ 4 ] );
-			}
+		if ( _stricmp( name, exportName ) == 0 ) {
+			WORD ordinal = ordinalTable[ i ];
+			DWORD functionAddress = functionTable[ ordinal ];
+			auto exportAddress = pModule + functionAddress;
+			return exportAddress;
 		}
 	}
+
+	return nullptr;
+}
+
+uint32_t getSysCallId( void* Func )
+{
+	auto pFunc = reinterpret_cast<uint8_t*>( Func );
+
+	if ( !pFunc )
+		return 0;
+
+#ifdef _WIN64
+
+	if ( *reinterpret_cast<uint32_t*>( &pFunc[ 0 ] ) == 0xB8D18B4C )
+	{
+		return *reinterpret_cast<uint32_t*>( &pFunc[ 4 ] );
+	}
+	else
+	{
+		auto Point = pFunc - 0x30;
+
+		for ( size_t i = 0; i < 0x30; i++ )
+		{
+			if ( *reinterpret_cast<uint32_t*>( &Point[ i ] ) == 0xB8D18B4C )
+				return ( *reinterpret_cast<uint32_t*>( &Point[ i + 1 ] ) ) + 1;
+			
+		}
+	}
+
+#else
+
+	if ( pFunc[ 0 ] == 0xB8 && pFunc[ 5 ] == 0xBA )
+	{
+		return *reinterpret_cast<uint32_t*>( &pFunc[ 1 ] );
+	}
+	else
+	{
+		auto Point = pFunc - 0x20;
+
+		for ( size_t i = 0; i < 0x20; i++ )
+		{
+			if ( Point[ i ] == 0xB8 && Point[ i + 5 ] == 0xBA )
+				return ( *reinterpret_cast<uint32_t*>( &Point[ i + 1 ] ) ) + 1;
+		}
+	}
+
+#endif
 	return 0;
 }
 
-uint32_t GetNtSyscall( HMODULE pMod, const char* ntName )
+uintptr_t NtGetCurrentTEB( )
 {
-	auto pPoint = (uint8_t*)GetProcAddress( pMod, ntName );
+#ifdef _M_IX86
+	return (uintptr_t)__readfsdword( 0x18 );
+#elif _M_AMD64
+	return (uintptr_t)__readgsqword( 0x30 );
+#endif
+}
 
-	if ( !pPoint )
+void SetExceptionCode( DWORD code )
+{
+	auto TEB = NtGetCurrentTEB( );
+#ifdef _M_IX86
+	* reinterpret_cast<uint32_t*>( TEB + 0x1a4 ) = code;
+#elif _M_AMD64
+	* reinterpret_cast<uint32_t*>( TEB + 0x2c0 ) = code;
+#endif
+}
+
+HMODULE WinWrap::GetModuleBase( const WCHAR* FileName )
+{
+	UNICODE_STRING ModName{};
+
+	RtlInitUnicodeString( &ModName, FileName );
+
+	void* ModHandle = nullptr;
+
+	LdrGetDllHandle( NULL, NULL, &ModName, &ModHandle );
+
+	return (HMODULE)ModHandle;
+}
+
+#ifdef _WIN64
+
+EXTERN_C
+uint8_t* pAnySyscall = nullptr;
+
+EXTERN_C
+void SysCallAsm( );
+
+#else
+
+uint8_t* pWow64Transition = nullptr;
+
+__declspec( naked ) int SysCallAsm( )
+{
+	_asm {
+		mov eax, fs:[0x1a4]
+		jmp dword ptr[ pWow64Transition ]
+	}
+}
+
+#endif
+
+FuncInfo iNtAllocateVirtualMemory	= {};
+FuncInfo iNtProtectVirtualMemory	= {};
+FuncInfo iNtQueryVirtualMemory		= {};
+FuncInfo iNtQuerySystemInformation	= {};
+FuncInfo iNtGetContextThread		= {};
+FuncInfo iNtSetContextThread		= {};
+FuncInfo iNtOpenThread				= {};
+FuncInfo iNtSuspendThread			= {};
+FuncInfo iNtResumeThread			= {};
+FuncInfo iNtQueryObject				= {};
+FuncInfo iNtContinue				= {};
+NTSTATUS LastStatus					= 0;
+
+std::map<std::string, FuncInfo*> ListWindowFunc{};
+std::map<std::string, FuncInfo*>& WinWrap::GetWindowsFuncInfo( )
+{
+	return ListWindowFunc;
+}
+
+#define REREF( name ) i##name = ListWindowFunc[ #name ]
+
+bool WinWrap::Init( )
+{
+	auto ntdll = GetModuleBase( L"ntdll.dll" );
+
+	GET_FUNC( NtAllocateVirtualMemory )
+	GET_FUNC( NtProtectVirtualMemory )
+	GET_FUNC( NtQueryVirtualMemory )
+	GET_FUNC( NtQuerySystemInformation )
+	GET_FUNC( NtGetContextThread )
+	GET_FUNC( NtSetContextThread )
+	GET_FUNC( NtOpenThread )
+	GET_FUNC( NtSuspendThread )
+	GET_FUNC( NtResumeThread )
+	GET_FUNC( NtQueryObject )
+	GET_FUNC( NtContinue )
+
+#ifdef _WIN64
+
+	auto pAnyFunc = GetExportAddress( ntdll, "NtDeleteFile" );
+
+	if ( !pAnyFunc )
 	{
-		log_file( "[-] - Fail Get Export offset: %s", ntName );
+		log_file( "[-] Failed to get export function NtDeleteFile\n" );
 		return false;
 	}
 
-	log_file( "[+] - pPoint: %X", pPoint );
-
-	uint32_t SysId = 0;
-
-	auto Point = pPoint + 0xF;
-
-	for ( size_t i = 0; i < 0x30; i++ )
+	for ( size_t i = 0; i < 0x100; i++ )
 	{
-		if ( Point[ i ] == 0xB8 && Point[ i + 5 ] == 0xBA )
+		if ( *reinterpret_cast<uint16_t*>( &pAnyFunc[ i ] ) == 0x050F )
 		{
-			SysId = ( *reinterpret_cast<uint32_t*>( &Point[ i + 1 ] ) ) - 1;
+			pAnySyscall = &pAnyFunc[ i ];
 			break;
 		}
 	}
 
-	return SysId;
-}
+	if ( !pAnySyscall )
+	{
+		log_file( "[-] Failed to get AnyInstrution Syscall\n" );
+		return false;
+	}
 
+#else
 
-bool WinWrap::Init( )
-{
-	get_sys_call_64( LoadLibrary( L"ntdll.dll" ), "adfsdf" );
+	auto Wow64Transition = GetExportAddress( ntdll, "Wow64Transition" );
 
+	if ( !Wow64Transition )
+	{
+		log_file( "[-] Failed to get export function Wow64Transition\n" );
+		return false;
+	}
+
+	pWow64Transition = *reinterpret_cast<uint8_t**>( Wow64Transition );
+
+#endif
+	
 	return true;
 }
 
@@ -137,11 +241,27 @@ ACCESS_MASK WinWrap::IsValidHandle( HANDLE Handle )
 
 		DWORD RetLen = 0;
 
-		if ( NtQueryObject( Handle, ObjectBasicInformation, &ObjInfo, sizeof( OBJECT_BASIC_INFORMATION ), &RetLen ) == 0 )
+		SetExceptionCode( iNtQueryObject.SyscallId );
+
+		LastStatus = THE_CALL( iNtQueryObject.UsePtr, Handle, ObjectBasicInformation, &ObjInfo, sizeof( OBJECT_BASIC_INFORMATION ), &RetLen );
+
+		if ( LastStatus == 0 )
 			return ObjInfo.GrantedAccess;
 
+		SetExceptionCode( 0 );
 	}
 	return 0;
+}
+
+NTSTATUS WinWrap::Continue( PCONTEXT ContextRecord, BOOLEAN TestAlert )
+{
+	SetExceptionCode( iNtContinue.SyscallId );
+
+	LastStatus = THE_CALL( iNtContinue.UsePtr, ContextRecord, TestAlert );
+
+	SetExceptionCode( 0 );
+
+	return LastStatus;
 }
 
 HANDLE WinWrap::OpenThread( ACCESS_MASK DesiredAccess, uintptr_t ThreadId )
@@ -157,41 +277,115 @@ HANDLE WinWrap::OpenThread( ACCESS_MASK DesiredAccess, uintptr_t ThreadId )
 		sizeof OBJECT_ATTRIBUTES 
 	};
 
-	NtOpenThread( &hThread, DesiredAccess, &ObjAtt, &cPid );
+	SetExceptionCode( iNtOpenThread.SyscallId );
+
+	LastStatus = THE_CALL( iNtOpenThread.UsePtr, &hThread, DesiredAccess, &ObjAtt, &cPid );
+
+	SetExceptionCode( 0 );
 
 	return hThread;
 }
 
 bool WinWrap::GetContextThread( HANDLE hThread, PCONTEXT pContext )
 {
-	//auto status = reinterpret_cast<decltype( NtGetContextThread )*>(  NtGetContextThreadAsm )( h_thread, p_context );
-	auto status = NtGetContextThread( hThread, pContext );
-	return ( status == 0 );
+	SetExceptionCode( iNtGetContextThread.SyscallId );
+
+	LastStatus = THE_CALL( iNtGetContextThread.UsePtr, hThread, pContext );
+
+	SetExceptionCode( 0 );
+
+	return ( LastStatus == 0 );
 }
 
 ULONG WinWrap::GetErrorStatus( )
 {
-	return 0;
+	return LastStatus;
 }
 
 bool WinWrap::SetContextThread( HANDLE hThread, PCONTEXT pContext )
 {
-	//auto status = reinterpret_cast<decltype( NtSetContextThread )*>( NtSetContextThreadAsm )( h_thread, p_context );
-	auto status = NtSetContextThread( hThread, pContext );
+	SetExceptionCode( iNtSetContextThread.SyscallId );
 
-	return ( status == 0 );
+	LastStatus = THE_CALL( iNtSetContextThread.UsePtr, hThread, pContext );
+
+	SetExceptionCode( 0 );
+
+	return ( LastStatus == 0 );
 }
 
 uint32_t WinWrap::SuspendThread( HANDLE hThread )
 {
-	ULONG suspend_count = -1;
-	NtSuspendThread( hThread, &suspend_count );
-	return suspend_count;
+	ULONG SuspendCount = -1;
+
+	SetExceptionCode( iNtSuspendThread.SyscallId );
+
+	LastStatus = THE_CALL( iNtSuspendThread.UsePtr, hThread, &SuspendCount );
+
+	SetExceptionCode( 0 );
+
+	return SuspendCount;
 }
 
 uint32_t WinWrap::ResumeThread( HANDLE hThread )
 {
-	ULONG suspend_count = -1;
-	NtResumeThread( hThread, &suspend_count );
-	return suspend_count;
+	ULONG SuspendCount = -1;
+
+	SetExceptionCode( iNtResumeThread.SyscallId );
+
+	LastStatus = THE_CALL( iNtResumeThread.UsePtr, hThread, &SuspendCount );
+
+	SetExceptionCode( 0 );
+
+	return SuspendCount;
+}
+
+bool WinWrap::QueryMemory( PVOID BaseAddress, MEMORY_INFORMATION_CLASS MemoryInformationClass, PVOID MemoryInformation, SIZE_T MemoryInformationLength, PSIZE_T ReturnLength )
+{
+	SetExceptionCode( iNtQueryVirtualMemory.SyscallId );
+
+	LastStatus = THE_CALL( iNtQueryVirtualMemory.UsePtr,
+			(HANDLE)-1, BaseAddress, MemoryInformationClass, MemoryInformation,
+			MemoryInformationLength, ReturnLength );
+
+	SetExceptionCode( 0 );
+
+	return ( LastStatus == 0 );
+}
+
+bool WinWrap::ProtectMemory( PVOID BaseAddress, SIZE_T RegionSize, ULONG NewProtect, PULONG OldProtect )
+{
+	SetExceptionCode( iNtProtectVirtualMemory.SyscallId );
+
+	LastStatus = THE_CALL( iNtProtectVirtualMemory.UsePtr, (HANDLE)-1, &BaseAddress, &RegionSize, NewProtect, OldProtect );
+
+	SetExceptionCode( 0 );
+
+	return ( LastStatus == 0 );
+}
+
+void* WinWrap::AllocMemory( PVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect )
+{
+	SetExceptionCode( iNtAllocateVirtualMemory.SyscallId );
+
+	PVOID	BaseAddress = lpAddress;
+
+	auto	RegionSize	= dwSize;
+
+	LastStatus = THE_CALL( iNtAllocateVirtualMemory.UsePtr, (HANDLE)-1, &BaseAddress, ULONG_PTR(0), &RegionSize, flAllocationType, flProtect );
+
+	SetExceptionCode( 0 );
+
+	return BaseAddress;
+}
+
+uint32_t WinWrap::QuerySystemInformation( SYSTEM_INFORMATION_CLASS SystemInformationClass, PVOID SystemInformation, ULONG SystemInformationLength, PULONG ReturnLength )
+{
+	SetExceptionCode( iNtQuerySystemInformation.SyscallId );
+
+	LastStatus = THE_CALL( iNtQuerySystemInformation.UsePtr,
+		SystemInformationClass, SystemInformation, SystemInformationLength, ReturnLength );
+
+	SetExceptionCode( 0 );
+
+	return LastStatus;
 }

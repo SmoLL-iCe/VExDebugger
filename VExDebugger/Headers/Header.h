@@ -1,6 +1,5 @@
 #pragma once
 #include <Windows.h>
-#include "../Tools/ntos.h"
 #include <iostream>
 #include <string>
 #include <cstdio>

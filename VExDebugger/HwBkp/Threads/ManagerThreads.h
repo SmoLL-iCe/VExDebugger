@@ -8,5 +8,5 @@ namespace MgrThreads
 	};
 
 	bool UpdateThreads( );
-	std::map<uint32_t, HANDLE> GetThreadList( );
+	std::map<uint32_t, HANDLE>& GetThreadList( );
 }

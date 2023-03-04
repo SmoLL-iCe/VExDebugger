@@ -1,5 +1,4 @@
 #pragma once
-#include <Windows.h>
 /************************************************************************************
 *
 *  (C) COPYRIGHT AUTHORS, 2015 - 2019, translated from Microsoft sources/debugger

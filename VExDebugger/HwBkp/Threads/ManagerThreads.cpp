@@ -15,7 +15,7 @@ PSYSTEM_PROCESS_INFORMATION EnumSystemThreads( )
 	{
 		ProcInfo		= s_cast<PSYSTEM_PROCESS_INFORMATION>( malloc( DataLength ) );
 
-		RetVal			= NtQuerySystemInformation( SystemExtendedProcessInformation, ProcInfo, DataLength, &DataLength );
+		RetVal			= WinWrap::QuerySystemInformation( SystemExtendedProcessInformation, ProcInfo, DataLength, &DataLength );
 
 		if ( RetVal == STATUS_INFO_LENGTH_MISMATCH )
 		{
@@ -44,7 +44,7 @@ PSYSTEM_HANDLE_INFORMATION EnumSystemHandles( )
 	{
 		HandlesInfo		= s_cast<PSYSTEM_HANDLE_INFORMATION>( malloc( DataLength ) );
 
-		RetVal			= NtQuerySystemInformation( SystemHandleInformation, HandlesInfo, DataLength, &DataLength );
+		RetVal			= WinWrap::QuerySystemInformation( SystemHandleInformation, HandlesInfo, DataLength, &DataLength );
 
 		if ( RetVal == STATUS_INFO_LENGTH_MISMATCH )
 		{
@@ -141,7 +141,7 @@ bool MgrThreads::UpdateThreads( )
 	return ( !ListThreadIdem.empty( ) );
 }
 
-std::map<uint32_t, HANDLE> MgrThreads::GetThreadList( )
+std::map<uint32_t, HANDLE>& MgrThreads::GetThreadList( )
 {
 	return ListThreadIdem;
 }

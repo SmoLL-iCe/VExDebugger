@@ -5,11 +5,11 @@
 #include "MgrHwBkp.h"
 #include "../Headers/LogsException.hpp"
 
-//https://en.wikipedia.org/wiki/X86_debug_register
+CONTEXT gLastCtx = { 0 };
 
-long __stdcall MgrHwBkp::Handler( EXCEPTION_POINTERS* pExceptionInfo )
+long __stdcall MgrHwBkp::ExceptionHandler( EXCEPTION_POINTERS* pExceptionInfo )
 {
-	if ( MgrHwBkp::GetHwBrkpList( ).empty( ) || !IS_SINGLE_STEP( pExceptionInfo ) )
+	if ( MgrHwBkp::GetHwBrkpList( ).empty( ) )
 		return EXCEPTION_EXECUTE_HANDLER;
 
 	auto* const		pContext				= pExceptionInfo->ContextRecord;
@@ -17,6 +17,33 @@ long __stdcall MgrHwBkp::Handler( EXCEPTION_POINTERS* pExceptionInfo )
 	auto* const		pExceptionRec			= pExceptionInfo->ExceptionRecord;
 
 	auto const		ExceptionAddress		= reinterpret_cast<uintptr_t>( pExceptionRec->ExceptionAddress );
+
+#ifndef _WIN64
+	auto const		SpoofDrCtx				= [&]( ) {
+
+		if ( Config::i( )->m_SpoofHwbkp )
+		{
+			for ( size_t i = 0; i < 6; i++ )
+			{
+				auto const pDrCtx		= &pContext->Dr0;
+
+				auto const pSaveDrCtx	= &gLastCtx.Dr0;
+
+				pSaveDrCtx[ i ]			= pDrCtx[ i ];
+
+				pDrCtx[ i ]				= 0;
+			}
+		}
+	};
+#endif // _WIN32
+
+	if ( !IS_SINGLE_STEP( pExceptionInfo ) )
+	{
+#ifndef _WIN64
+		SpoofDrCtx( );
+#endif // _WIN32
+		return EXCEPTION_EXECUTE_HANDLER;
+	}
 
 	for ( const auto & [ Address, BpInfo ] : VExInternal::GetBreakpointList() )
 		{
@@ -54,8 +81,40 @@ long __stdcall MgrHwBkp::Handler( EXCEPTION_POINTERS* pExceptionInfo )
 				SET_RESUME_FLAG( pContext );
 			}
 
+#ifndef _WIN64
+			SpoofDrCtx( );
+#endif // _WIN32
+
 			return EXCEPTION_CONTINUE_EXECUTION;
 		}
-	
+
+#ifndef _WIN64
+	SpoofDrCtx( );
+#endif // _WIN32
+
 	return EXCEPTION_EXECUTE_HANDLER;
+}
+
+long __stdcall MgrHwBkp::ContinueHandler( EXCEPTION_POINTERS* pExceptionInfo )
+{
+	if ( MgrHwBkp::GetHwBrkpList( ).empty( ) )
+		return EXCEPTION_EXECUTE_HANDLER;
+
+#ifndef _WIN64
+	if ( Config::i( )->m_SpoofHwbkp )
+	{
+		auto pContext = pExceptionInfo->ContextRecord;
+
+		if ( pContext->Dr7 != gLastCtx.Dr7 )
+		{
+			for ( size_t i = 0; i < 6; i++ )
+			{
+				( &pContext->Dr0 )[ i ] =
+					( &gLastCtx.Dr0 )[ i ];
+			}
+		}
+	}
+#endif // _WIN32
+
+	return EXCEPTION_CONTINUE_EXECUTION;
 }

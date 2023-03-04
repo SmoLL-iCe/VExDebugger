@@ -6,6 +6,8 @@
 #include "Config/Config.h"
 #include "HwBkp/MgrHwBkp.h"
 #include "HwBkp/HwBkpHandler.h"
+#include "SpoofDbg/SpoofDbg.h"
+#include "Headers/LogsException.hpp"
 
 bool					isCsInitialized				= false;
 
@@ -14,6 +16,14 @@ CRITICAL_SECTION		HandlerCS					= { };
 TAssocExceptionList		AddressAssocExceptionList	= { };
 
 TBreakpointList         BreakpointList				= { };
+
+void*		pLvlExcptFilter				= nullptr;
+
+void*		pExcpHandlerEntry			= nullptr;
+
+void*		pCtnHandlerEntry			= nullptr;
+
+void*		OriginalHandlerFilter		= nullptr;
 
 std::map<uintptr_t, ExceptionInfoList>& VExInternal::GetAssocExceptionList( )
 {
@@ -51,11 +61,7 @@ void VExDebugger::CallBreakpointList( const std::function<void( TBreakpointList&
 	LeaveCriticalSection( &HandlerCS );
 }
 
-void*		p_VExDebugger			= nullptr;
-
-void*		OriginalHandlerFilter	= nullptr;
-
-long __stdcall InitialHandler( EXCEPTION_POINTERS* pExceptionInfo )
+long __stdcall InitialExceptionHandler( EXCEPTION_POINTERS* pExceptionInfo )
 {
 	if ( !pExceptionInfo || !pExceptionInfo->ExceptionRecord || !pExceptionInfo->ContextRecord )
 	{ // maybe trap
@@ -68,16 +74,44 @@ long __stdcall InitialHandler( EXCEPTION_POINTERS* pExceptionInfo )
 
 	EnterCriticalSection( &HandlerCS );
 
-	//DisplayContextLogs( pContext, pExceptionRec ); // tests
+	//DisplayContextLogs( pExceptionInfo->ContextRecord, pExceptionInfo->ExceptionRecord ); // tests
 
-	auto Result = MgrHwBkp::Handler( pExceptionInfo );
+	auto Result = MgrHwBkp::ExceptionHandler( pExceptionInfo );
+
+	if ( pLvlExcptFilter && EXCEPTION_CONTINUE_EXECUTION == Result )
+	{
+		LeaveCriticalSection( &HandlerCS );
+
+		WinWrap::Continue( pExceptionInfo->ContextRecord, FALSE );
+
+		return Result;
+	}
 	
 	if ( OriginalHandlerFilter && EXCEPTION_EXECUTE_HANDLER == Result )
 	{
 		LeaveCriticalSection( &HandlerCS );
 
-		return reinterpret_cast<decltype( InitialHandler )*>( OriginalHandlerFilter )( pExceptionInfo );
+		return reinterpret_cast<decltype( InitialExceptionHandler )*>( OriginalHandlerFilter )( pExceptionInfo );
 	}
+
+	LeaveCriticalSection( &HandlerCS );
+
+	return Result;
+}
+
+long __stdcall InitialContinueHandler( EXCEPTION_POINTERS* pExceptionInfo )
+{
+	if ( !pExceptionInfo || !pExceptionInfo->ExceptionRecord || !pExceptionInfo->ContextRecord )
+	{ // maybe trap
+		return EXCEPTION_EXECUTE_HANDLER;
+	}
+
+	EnterCriticalSection( &HandlerCS );
+
+	// Using the RtlAddVectoredContinueHandler
+	// Continue handler is a callback that is called after any exception has been continued
+
+	auto Result = MgrHwBkp::ContinueHandler( pExceptionInfo );
 
 	LeaveCriticalSection( &HandlerCS );
 
@@ -115,6 +149,7 @@ bool VExDebugger::Init( HandlerType Type, bool Logs )
 	if ( !isCsInitialized )
 	{
 		InitializeCriticalSection( &HandlerCS );
+
 		isCsInitialized = true;
 	}
 
@@ -127,25 +162,47 @@ bool VExDebugger::Init( HandlerType Type, bool Logs )
 	if ( !WinWrap::Init( ) )
 		return false;
 
+	//SpoofDbg::HookNtGetContextThread( );
+	//SpoofDbg::HookNtContinue( );
+
 	nLog::Init( );
+
+
 	bool Result = false;
 
 	switch ( Type )
 	{
 	case HandlerType::VectoredExceptionHandler:
-		p_VExDebugger = RtlAddVectoredExceptionHandler( 1, InitialHandler );
-		Result = ( p_VExDebugger != nullptr );
+
+		// HandleEntry is the point of item in the LdrpVectorHandlerList
+		// Provides the handler info
+
+		pExcpHandlerEntry	= RtlAddVectoredExceptionHandler( 1, InitialExceptionHandler );
+
+		//pCtnHandlerEntry	= RtlAddVectoredContinueHandler( 1, InitialContinueHandler );
+
+		Result				= ( pExcpHandlerEntry != nullptr );
+
 		break;
 	case HandlerType::UnhandledExceptionFilter:
-		p_VExDebugger = SetUnhandledExceptionFilter( InitialHandler );
-		Result = ( p_VExDebugger != nullptr );
+
+		// If any VEH handle the exception, SEH will catch
+
+		Config::i( )->m_SpoofHwbkp = false;
+
+		pLvlExcptFilter		= SetUnhandledExceptionFilter( InitialExceptionHandler );
+
+		Result				= ( pLvlExcptFilter != nullptr );
+
+
 		break;
 	case HandlerType::VectoredExceptionHandlerIntercept:
-		return VEH_Internal::InterceptVEHHandler( InitialHandler, OriginalHandlerFilter );
+
+		return VEH_Internal::InterceptVEHHandler( InitialExceptionHandler, OriginalHandlerFilter );
+
 	default:
 		break;
 	}
-
 	return Result;
 }
 
