@@ -43,7 +43,7 @@ std::uint8_t* DoHook::GetNextPage( void* pAddress )
 
         if ( diff < MaxDis && ( ( mbi.State & MEM_FREE ) || ( mbi.State & MEM_COMMIT ) ) )
         {
-            if ( mbi.RegionSize > 0x1000 )
+            if ( mbi.RegionSize >= 0x1000 )
             {
                 auto t = mbi.RegionSize / 0x1000;
 
