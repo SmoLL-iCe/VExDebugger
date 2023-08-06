@@ -4,6 +4,16 @@
 #include <map>
 #include <vector>
 #include <functional>
+#include <winnt.h>
+
+enum class CBReturn
+{
+	StopTrace,
+	StepInto,
+	StepOver,
+};
+
+using TCallback                     = std::function<CBReturn( PEXCEPTION_RECORD, PCONTEXT )>;
 
 enum class BkpTrigger
 {
@@ -41,7 +51,9 @@ struct BkpInfo
 
 	BkpSize		Size		= BkpSize::Size_1;
 
-	int Pos = 0;
+	int         Pos         = 0;
+
+	TCallback   Callback    = {};
 };
 	
 struct CatchedDetails
@@ -72,13 +84,21 @@ namespace VExDebugger
 
 	void CallBreakpointList( const std::function<void( TBreakpointList& )>& lpEnumFunc );
 
-	bool StartMonitorAddress( uintptr_t Address, BkpTrigger Trigger, BkpSize Size );
+	bool StartMonitorAddress( const uintptr_t Address, const BkpTrigger Trigger, const BkpSize Size );
+
+	bool SetTracerAddress( const uintptr_t Address, const BkpTrigger Trigger, const BkpSize Size, TCallback Callback );
 	
 	void RemoveMonitorAddress( uintptr_t Address );
 
 	template <typename T>
 	inline bool StartMonitorAddress( T Address, BkpTrigger Trigger, BkpSize Size )
 	{
-		return StartMonitorAddress( (uintptr_t)Address, Trigger, Size );
+		return StartMonitorAddress( (uintptr_t)(Address), Trigger, Size );
+	}
+
+	template <typename T>
+	inline bool SetTracerAddress( T Address, BkpTrigger Trigger, BkpSize Size, TCallback Callback )
+	{
+		return SetTracerAddress( (uintptr_t)( Address ), Trigger, Size, Callback );
 	}
 }

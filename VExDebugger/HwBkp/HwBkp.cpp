@@ -7,7 +7,6 @@
 
 HwBkp* g_CurrentHwBreakPt = nullptr;
 
-
 HwBkp::HwBkp( const uintptr_t Address, const BkpSize Size, const BkpTrigger Trigger, const bool Add )
 {
 	this->Address		= Address;
@@ -36,6 +35,21 @@ uintptr_t HwBkp::GetAddress( ) const
 	return Address;
 }
 
+int HwBkp::GetTriggerCondition( ) const
+{
+	switch ( Trigger )
+	{
+	case BkpTrigger::Execute:
+		return 0;
+	case BkpTrigger::ReadWrite:
+		return 3;
+	case BkpTrigger::Write:
+		return 1;
+		break;
+	}
+	return 0;
+}
+
 BkpTrigger HwBkp::GetTriggerType( ) const
 {
 	return Trigger;
@@ -54,16 +68,6 @@ int HwBkp::GetPos( ) const
 bool HwBkp::GetAnySuccess( ) const
 {
 	return AnySuccess;
-}
-
-#ifdef _WIN64
-void setBits( uintptr_t& dr7, const intptr_t low_bit, const intptr_t bits, const intptr_t new_value )
-#else
-void setBits( DWORD& dr7, const intptr_t low_bit, const intptr_t bits, const intptr_t new_value )
-#endif
-{
-	const auto mask = ( 1 << bits ) - 1;
-	dr7 = ( dr7 & ~( mask << low_bit ) ) | ( new_value << low_bit );
 }
 
 bool HwBkp::ApplyHwbkpDebugConfig( const HANDLE hThread, uint32_t ThreadId, bool useExisting )
@@ -106,8 +110,8 @@ bool HwBkp::ApplyHwbkpDebugConfig( const HANDLE hThread, uint32_t ThreadId, bool
 	bool DrBusy[ 4 ] = { false, false, false, false };
 
 	//Max Capacity is 4
-	for ( auto i = 0, bts = 1; i < 4; i++, bts = bts * 4 )
-		if ( Ctx.Dr7 & bts )
+	for ( auto i = 0; i < 4; i++ )
+		if ( Ctx.Dr7 & static_cast<int>( std::pow( 4, i ) ) )
 			DrBusy[ i ] = true;
 
 	if ( !Add )
@@ -128,19 +132,19 @@ bool HwBkp::ApplyHwbkpDebugConfig( const HANDLE hThread, uint32_t ThreadId, bool
 	else
 	{ // Add
 
-		auto FindEmptyDr			= useExisting;
+		auto FindEmptyDr                = useExisting;
 
 		if ( useExisting )
-			pDbgReg[ DbgRegAvailable ]	= Address; //replace existing
+			pDbgReg[ DbgRegAvailable ]  = Address; //replace existing
 		else
 			for ( auto i = 0; i < 4; i++ )
 				if ( !DrBusy[ i ] )
 				{
-					FindEmptyDr			= true;
+					FindEmptyDr         = true;
 
-					DbgRegAvailable		= i;
+					DbgRegAvailable     = i;
 
-					pDbgReg[ i ]	= Address;
+					pDbgReg[ i ]        = Address;
 
 					break;
 				}
@@ -154,28 +158,7 @@ bool HwBkp::ApplyHwbkpDebugConfig( const HANDLE hThread, uint32_t ThreadId, bool
 
 		Ctx.Dr6				= 0;
 
-		auto DbgCondition	= 0;
-
-		switch ( Trigger )
-		{
-		case BkpTrigger::Execute:
-			DbgCondition	= 0;
-			break;
-		case BkpTrigger::ReadWrite:
-			DbgCondition	= 3;
-			break;
-		case BkpTrigger::Write:
-			DbgCondition	= 1;
-			break;
-		}
-
-		const auto eSize	= s_cast<int>( Size );
-
-		setBits( Ctx.Dr7, 16 + DbgRegAvailable * 4, 2, DbgCondition );	// set dbg type
-
-		setBits( Ctx.Dr7, 18 + DbgRegAvailable * 4, 2, eSize		);	// set dbg data size
-
-		setBits( Ctx.Dr7, DbgRegAvailable * 2, 1, 1 );
+		SetDr7Config( &Ctx );
 	}
 
 	Ctx.ContextFlags = CONTEXT_DEBUG_REGISTERS;
@@ -194,4 +177,30 @@ bool HwBkp::ApplyHwbkpDebugConfig( const HANDLE hThread, uint32_t ThreadId, bool
 	Resume( );
 
 	return true;
+}
+
+void HwBkp::SetDr7Config( PCONTEXT pContext )
+{
+	auto DbgCondition	= 0;
+
+	switch ( Trigger )
+	{
+	case BkpTrigger::Execute:
+		DbgCondition	= 0;
+		break;
+	case BkpTrigger::ReadWrite:
+		DbgCondition	= 3;
+		break;
+	case BkpTrigger::Write:
+		DbgCondition	= 1;
+		break;
+	}
+
+	const auto eSize	= s_cast<int>( Size );
+
+	SET_DR7_INDEX_TYPE( pContext, DbgRegAvailable, DbgCondition );
+
+	SET_DR7_INDEX_SIZE( pContext, DbgRegAvailable, eSize );
+
+	SET_DR7_INDEX_ENABLE( pContext, DbgRegAvailable, true );
 }

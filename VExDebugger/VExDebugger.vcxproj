@@ -391,6 +391,7 @@
     <ClInclude Include="SpoofDbg\SpoofDbg.h" />
     <ClInclude Include="Tools\Logs.h" />
     <ClInclude Include="Tools\ntos.h" />
+    <ClInclude Include="Tools\Utils.h" />
     <ClInclude Include="Tools\WinWrap.h" />
     <ClInclude Include="veh\VEH.h" />
     <ClInclude Include="veh\Structs.hpp" />
@@ -404,6 +405,7 @@
     <ClCompile Include="SpoofDbg\DoHook.cpp" />
     <ClCompile Include="SpoofDbg\SpoofDbg.cpp" />
     <ClCompile Include="Tools\Logs.cpp" />
+    <ClCompile Include="Tools\Utils.cpp" />
     <ClCompile Include="Tools\WinWrap.cpp" />
     <ClCompile Include="veh\VEH.cpp" />
     <ClCompile Include="VExDebugger.cpp" />

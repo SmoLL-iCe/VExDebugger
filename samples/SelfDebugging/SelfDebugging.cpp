@@ -169,7 +169,7 @@ std::vector<uint8_t*> GetCodeCaves( )
 
 uint8_t* AllocMemPage		= 0;
 uint8_t* RelativePointPtr	= 0;
-auto pFuncExecHit			= reinterpret_cast<uint8_t( __fastcall* )( uint8_t* )>( RelativePointPtr + 0x300 );
+auto pFuncExecHit			= reinterpret_cast<uint8_t( __fastcall* )( uint8_t* )>( 0 );
 
 void CreatePageTests( )
 {
@@ -189,21 +189,59 @@ void CreatePageTests( )
 
 	*(uint32_t*)( RelativePointPtr + 0x300 ) = 0x90C3018A;
 
+	pFuncExecHit = decltype( pFuncExecHit )( RelativePointPtr + 0x300 );
+
 	printf( "AllocMemPage: 0x%p\n", AllocMemPage );
+
 	printf( "RelativePointPtr: 0x%p\n", RelativePointPtr );
+
+	printf( "ExecHit: 0x%p\n", pFuncExecHit );
+
 }
 
 void SetBreakPointsFunc( )
 {
 	VExDebugger::Init( HandlerType::VectoredExceptionHandler, true );
 
-	VExDebugger::StartMonitorAddress( RelativePointPtr + 0x100, BkpTrigger::ReadWrite, BkpSize::Size_2 );
+	VExDebugger::StartMonitorAddress( RelativePointPtr + 0x100, BkpTrigger::Write, BkpSize::Size_2 );
 
-	//VExDebugger::StartMonitorAddress( RelativePointPtr + 0x200, BkpTrigger::ReadWrite, BkpSize::Size_1 );
+	VExDebugger::StartMonitorAddress( RelativePointPtr + 0x200, BkpTrigger::ReadWrite, BkpSize::Size_1 );
 
 	//VExDebugger::StartMonitorAddress( RelativePointPtr + 0x300, BkpTrigger::Execute, BkpSize::Size_1 );
 
 	//VExDebugger::StartMonitorAddress( RelativePointPtr, BkpTrigger::ReadWrite, BkpSize::Size_1 );
+
+
+	VExDebugger::SetTracerAddress( 
+		RelativePointPtr + 0x300, 
+		BkpTrigger::Execute, 
+		BkpSize::Size_1,
+	[ ]( PEXCEPTION_RECORD pExceptRec, PCONTEXT pContext ) -> CBReturn 
+		{
+			static int count = 0;
+			auto Module = GetModuleInfo( (uintptr_t)pExceptRec->ExceptionAddress );
+
+			if ( !Module.modBaseAddr )
+			{
+				std::cout << count << " ExceptionAddress: 0x" << std::hex << std::uppercase << (uintptr_t)pExceptRec->ExceptionAddress << "\n";
+			}
+			else
+			{
+				auto Offset = (uintptr_t)pExceptRec->ExceptionAddress - reinterpret_cast<uintptr_t>( Module.modBaseAddr );
+
+				std::cout << count << " ExceptionAddress: ";
+
+				std::wcout << Module.szModule;
+
+				std::cout << "+" << std::hex << std::uppercase << Offset << "\n";
+			}
+			++count;
+
+
+			return ( count >= 8 ) ? CBReturn::StopTrace : CBReturn::StepOver;
+
+		}
+	);
 
 }
 
@@ -302,9 +340,9 @@ void TestPage( )
 
 void TestExec( )
 {
-	for ( size_t i = 0; i < 3; i++ )
+	uintptr_t val = 12;
+	for ( size_t i = 0; i < 1; i++ )
 	{
-		uintptr_t val = 12;
 
 		auto t = pFuncExecHit( (uint8_t*)&val );
 
@@ -490,6 +528,7 @@ void testDetectHardwareBkp( )
 }
 
 #pragma optimize( "", off )
+
 int main( )
 {
     std::cout << "Hello World!\n";
@@ -498,8 +537,7 @@ int main( )
 
 	//system( "pause" );
 
-	testDetectHardwareBkp( );
-
+	//testDetectHardwareBkp( );
 
 #ifdef LOAD_MODULE
 	auto h = LoadLibrary( L"ImVExDebugger_x" ARCH ".dll" );
@@ -509,14 +547,15 @@ int main( )
 	CreateThread( nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>( SetBreakPointsFunc ), nullptr, 0, nullptr );
 #endif
 
-	//system( "pause" );
+	system( "pause" );
 
 	Sleep( 1000 );
 
-
 	// TryDetectHardwareBkp( );
 
-	// TestExec( );
+	TestExec( );
+
+	printf( "out\n");
 
 	// TestMod( );
 
@@ -524,80 +563,80 @@ int main( )
 
 #ifndef LOAD_MODULE
 
-	while ( true )
-	{
-		Sleep( 1000 );
+	//while ( true )
+	//{
+	//	Sleep( 1000 );
 
-		VExDebugger::CallBreakpointList( []( TBreakpointList BreakpointList ) -> void {
+	//	VExDebugger::CallBreakpointList( []( TBreakpointList BreakpointList ) -> void {
 
-			for ( const auto& [Address, BpInfo] : BreakpointList )
-			{
-				if ( !Address )
-					continue;
+	//		for ( const auto& [Address, BpInfo] : BreakpointList )
+	//		{
+	//			if ( !Address )
+	//				continue;
 
-				if ( BpInfo.Method != BkpMethod::Hardware )             // only support hardware breakpoint
-					continue;
+	//			if ( BpInfo.Method != BkpMethod::Hardware )             // only support hardware breakpoint
+	//				continue;
 
-				bool Skip = false;
+	//			bool Skip = false;
 
-				VExDebugger::CallAssocExceptionList( [&]( TAssocExceptionList AssocExceptionList ) -> void {
+	//			VExDebugger::CallAssocExceptionList( [&]( TAssocExceptionList AssocExceptionList ) -> void {
 
-					auto ItExceptionList = AssocExceptionList.find( Address );
+	//				auto ItExceptionList = AssocExceptionList.find( Address );
 
-					if ( ItExceptionList == AssocExceptionList.end( ) )
-						return;
-				
+	//				if ( ItExceptionList == AssocExceptionList.end( ) )
+	//					return;
+	//			
 
-					auto& ExceptionList = ItExceptionList->second;
+	//				auto& ExceptionList = ItExceptionList->second;
 
-					std::cout << "\nIndex: " << ( BpInfo.Pos + 1 ) << ", Address: 0x" <<
-						std::hex << std::uppercase << Address << "\n";
-
-
-					for ( const auto& [ExceptionAddress, ExceptionInfo] : ExceptionList )
-					{
-
-						std::cout <<
-							"\tCount " << color::start( "Light Blue" ) <<
-							std::setfill( ' ' ) << std::setw( 8 ) << std::dec << ExceptionInfo.Details.Count <<
-							color::end( );
+	//				std::cout << "\nIndex: " << ( BpInfo.Pos + 1 ) << ", Address: 0x" <<
+	//					std::hex << std::uppercase << Address << "\n";
 
 
-						if ( BpInfo.Trigger != BkpTrigger::Execute )
-						{
-							std::cout << color::start( "Light Green" );
+	//				for ( const auto& [ExceptionAddress, ExceptionInfo] : ExceptionList )
+	//				{
 
-							auto Module = GetModuleInfo( ExceptionAddress );
+	//					std::cout <<
+	//						"\tCount " << color::start( "Light Blue" ) <<
+	//						std::setfill( ' ' ) << std::setw( 8 ) << std::dec << ExceptionInfo.Details.Count <<
+	//						color::end( );
 
-							if ( !Module.modBaseAddr )
-							{
-								std::cout << " ExceptionAddress: 0x" << std::hex << std::uppercase << ExceptionAddress << "\n";
-							}
-							else
-							{
-								auto Offset = ExceptionAddress - reinterpret_cast<uintptr_t>( Module.modBaseAddr );
 
-								std::cout << " ExceptionAddress: ";
+	//					if ( BpInfo.Trigger != BkpTrigger::Execute )
+	//					{
+	//						std::cout << color::start( "Light Green" );
 
-								std::wcout << Module.szModule;
+	//						auto Module = GetModuleInfo( ExceptionAddress );
 
-								std::cout << "+0x" << std::hex << std::uppercase << Offset << "\n";
-							}
+	//						if ( !Module.modBaseAddr )
+	//						{
+	//							std::cout << " ExceptionAddress: 0x" << std::hex << std::uppercase << ExceptionAddress << "\n";
+	//						}
+	//						else
+	//						{
+	//							auto Offset = ExceptionAddress - reinterpret_cast<uintptr_t>( Module.modBaseAddr );
 
-							std::cout << color::end( );
-						}
-						else
-						{
+	//							std::cout << " ExceptionAddress: ";
 
-							std::cout << " ThreadId: " << std::dec << color::start( "Light Green" )
-								<< ExceptionAddress << color::end( ) << "\n";
-						}
-					}
+	//							std::wcout << Module.szModule;
 
-				} );
-			}
-		} );
-	}
+	//							std::cout << "+0x" << std::hex << std::uppercase << Offset << "\n";
+	//						}
+
+	//						std::cout << color::end( );
+	//					}
+	//					else
+	//					{
+
+	//						std::cout << " ThreadId: " << std::dec << color::start( "Light Green" )
+	//							<< ExceptionAddress << color::end( ) << "\n";
+	//					}
+	//				}
+
+	//			} );
+	//		}
+	//	} );
+	//}
 #endif
 
 

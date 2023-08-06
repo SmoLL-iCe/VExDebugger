@@ -9,21 +9,21 @@
 #include "SpoofDbg/SpoofDbg.h"
 #include "Headers/LogsException.hpp"
 
-bool					isCsInitialized				= false;
+bool                    isCsInitialized				= false;
 
-CRITICAL_SECTION		HandlerCS					= { };
+CRITICAL_SECTION        HandlerCS					= { };
 
-TAssocExceptionList		AddressAssocExceptionList	= { };
+TAssocExceptionList     AddressAssocExceptionList	= { };
 
 TBreakpointList         BreakpointList				= { };
 
-void*		pLvlExcptFilter				= nullptr;
+void*                   pLvlExcptFilter				= nullptr;
 
-void*		pExcpHandlerEntry			= nullptr;
+void*                   pExcpHandlerEntry			= nullptr;
 
-void*		pCtnHandlerEntry			= nullptr;
+void*                   pCtnHandlerEntry			= nullptr;
 
-void*		OriginalHandlerFilter		= nullptr;
+void*                   OriginalHandlerFilter		= nullptr;
 
 std::map<uintptr_t, ExceptionInfoList>& VExInternal::GetAssocExceptionList( )
 {
@@ -126,6 +126,20 @@ bool VExDebugger::StartMonitorAddress( const uintptr_t Address, const BkpTrigger
 	EnterCriticalSection( &HandlerCS );
 
 	auto r = MgrHwBkp::SetBkpAddressInAllThreads( Address, Trigger, Size );
+
+	LeaveCriticalSection( &HandlerCS );
+
+	return r;
+}
+
+bool VExDebugger::SetTracerAddress( const uintptr_t Address, const BkpTrigger Trigger, const BkpSize Size, TCallback Callback )
+{
+	if ( !isCsInitialized )
+		return false;
+
+	EnterCriticalSection( &HandlerCS );
+
+	auto r = MgrHwBkp::SetBkpAddressInAllThreads( Address, Trigger, Size, Callback );
 
 	LeaveCriticalSection( &HandlerCS );
 

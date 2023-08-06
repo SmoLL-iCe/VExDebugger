@@ -76,6 +76,9 @@
     <ClInclude Include="SpoofDbg\DoHook.h">
       <Filter>VExDebugger\SpoofDbg</Filter>
     </ClInclude>
+    <ClInclude Include="Tools\Utils.h">
+      <Filter>VExDebugger\Tools</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="VExDebugger.cpp">
@@ -110,6 +113,9 @@
     </ClCompile>
     <ClCompile Include="SpoofDbg\DoHook.cpp">
       <Filter>VExDebugger\SpoofDbg</Filter>
+    </ClCompile>
+    <ClCompile Include="Tools\Utils.cpp">
+      <Filter>VExDebugger\Tools</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

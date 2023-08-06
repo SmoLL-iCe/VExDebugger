@@ -53,7 +53,7 @@ void MgrHwBkp::UpdateInfo( )
 	}
 }
 
-bool MgrHwBkp::SetBkpAddressInAllThreads( const uintptr_t Address, const BkpTrigger Trigger, const BkpSize Size )
+bool MgrHwBkp::SetBkpAddressInAllThreads( const uintptr_t Address, const BkpTrigger Trigger, const BkpSize Size, TCallback Callback )
 {
 	UpdateInfo( );
 
@@ -104,6 +104,8 @@ bool MgrHwBkp::SetBkpAddressInAllThreads( const uintptr_t Address, const BkpTrig
 			.Size		= HwBkp::i( )->GetSize( ),
 
 			.Pos		= HwBkp::i( )->GetPos( ),
+
+			.Callback   = Callback,
 		};
 
 		AddressAdded[ Address ] = HwBkp::i( );
