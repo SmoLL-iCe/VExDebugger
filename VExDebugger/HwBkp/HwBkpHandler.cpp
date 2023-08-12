@@ -5,15 +5,7 @@
 #include "MgrHwBkp.h"
 #include "../Headers/LogsException.hpp"
 #include <algorithm>
-#include "../Tools/Utils.cpp"
-
-#define SET_TRAP_FLAG(ctx)			            ctx->EFlags |= (1 << 8)
-
-#define UNSET_TRAP_FLAG(ctx)		            ctx->EFlags &= ~(1 << 8)
-
-#define SET_RESUME_FLAG(ctx)		            ctx->EFlags |= 0x10000u // RF
-
-#define IS_TRAP_FLAG(ctx)			            ( ctx->Dr6 & 0x4000 ) != 0 // check is TF
+#include "../Tools/Utils.h"
 
 #define IS_HW_TRIGGERED(ctx)		            ( ctx->Dr6 & 0xF ) != 0
 

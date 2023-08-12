@@ -26,6 +26,9 @@
     <Filter Include="VExDebugger\SpoofDbg">
       <UniqueIdentifier>{89bfa756-f3a2-44d1-a0b5-ccd947ba86ce}</UniqueIdentifier>
     </Filter>
+    <Filter Include="VExDebugger\PGEBkp">
+      <UniqueIdentifier>{ee69a4c4-16ac-4a64-abf2-d36471528ea8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\import\include\VExDebugger.h">
@@ -79,6 +82,15 @@
     <ClInclude Include="Tools\Utils.h">
       <Filter>VExDebugger\Tools</Filter>
     </ClInclude>
+    <ClInclude Include="PGEBkp\MgrPGE.h">
+      <Filter>VExDebugger\PGEBkp</Filter>
+    </ClInclude>
+    <ClInclude Include="PGEBkp\PGEHandler.h">
+      <Filter>VExDebugger\PGEBkp</Filter>
+    </ClInclude>
+    <ClInclude Include="PGEBkp\PGE.hpp">
+      <Filter>VExDebugger\PGEBkp</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="VExDebugger.cpp">
@@ -116,6 +128,12 @@
     </ClCompile>
     <ClCompile Include="Tools\Utils.cpp">
       <Filter>VExDebugger\Tools</Filter>
+    </ClCompile>
+    <ClCompile Include="PGEBkp\MgrPGE.cpp">
+      <Filter>VExDebugger\PGEBkp</Filter>
+    </ClCompile>
+    <ClCompile Include="PGEBkp\PGEHandler.cpp">
+      <Filter>VExDebugger\PGEBkp</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

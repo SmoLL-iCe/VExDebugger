@@ -41,6 +41,7 @@ enum class HandlerType
 enum class BkpMethod
 {
 	Hardware,
+	PageExceptions,
 };
 
 struct BkpInfo

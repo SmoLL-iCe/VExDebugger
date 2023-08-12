@@ -8,6 +8,7 @@
 #include "HwBkp/HwBkpHandler.h"
 #include "SpoofDbg/SpoofDbg.h"
 #include "Headers/LogsException.hpp"
+#include "PGEBkp/PGEHandler.h"
 
 bool                    isCsInitialized				= false;
 
@@ -71,6 +72,9 @@ long __stdcall InitialExceptionHandler( EXCEPTION_POINTERS* pExceptionInfo )
 		
 		return EXCEPTION_EXECUTE_HANDLER;
 	}
+
+
+	return MgrPGE::CheckPageGuardExceptions( pExceptionInfo );
 
 	EnterCriticalSection( &HandlerCS );
 

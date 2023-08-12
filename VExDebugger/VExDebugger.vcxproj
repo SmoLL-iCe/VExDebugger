@@ -387,6 +387,9 @@
     <ClInclude Include="HwBkp\HwBkpHandler.h" />
     <ClInclude Include="HwBkp\MgrHwBkp.h" />
     <ClInclude Include="HwBkp\Threads\ManagerThreads.h" />
+    <ClInclude Include="PGEBkp\MgrPGE.h" />
+    <ClInclude Include="PGEBkp\PGE.hpp" />
+    <ClInclude Include="PGEBkp\PGEHandler.h" />
     <ClInclude Include="SpoofDbg\DoHook.h" />
     <ClInclude Include="SpoofDbg\SpoofDbg.h" />
     <ClInclude Include="Tools\Logs.h" />
@@ -402,6 +405,8 @@
     <ClCompile Include="HwBkp\HwBkpHandler.cpp" />
     <ClCompile Include="HwBkp\MgrHwBkp.cpp" />
     <ClCompile Include="HwBkp\Threads\ManagerThreads.cpp" />
+    <ClCompile Include="PGEBkp\MgrPGE.cpp" />
+    <ClCompile Include="PGEBkp\PGEHandler.cpp" />
     <ClCompile Include="SpoofDbg\DoHook.cpp" />
     <ClCompile Include="SpoofDbg\SpoofDbg.cpp" />
     <ClCompile Include="Tools\Logs.cpp" />

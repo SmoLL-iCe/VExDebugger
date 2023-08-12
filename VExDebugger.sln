@@ -17,7 +17,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tests", "samples\tests\test
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dotNetForms", "samples\dotNetForms\dotNetForms.vcxproj", "{FA2810B0-800A-49C5-8497-89FD708C3A8E}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SelfDebugging", "samples\SelfDebugging\SelfDebugging.vcxproj", "{F93AD26C-26D6-40AD-A581-29AC3278E31E}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DevelopingTests", "samples\DevelopingTests\DevelopingTests.vcxproj", "{F93AD26C-26D6-40AD-A581-29AC3278E31E}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tracer", "samples\tracer\tracer.vcxproj", "{C4485E21-FE55-4A12-A205-A6F5B99421CC}"
 EndProject
