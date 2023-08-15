@@ -3,320 +3,8 @@
 #include "../Config/Config.h"
 #include "PGEHandler.h"
 #include "MgrPGE.h"
-#include "../Headers/LogsException.hpp"
 #include <algorithm>
-#include "../Tools/ntos.h"
-#include "../Tools/Utils.h"
-
-
-bool PageGuardException::RestorePageGuardProtection( )
-{
-	DWORD dwOld = 0;
-
-	auto Status = NtProtectVirtualMemory( (HANDLE)( -1 ),
-		reinterpret_cast<void**>( &this->AllocBase ),
-		reinterpret_cast<SIZE_T*>( &this->AllocSize ), this->SetProtection, &dwOld );
-
-	auto Result = Status == 0;
-	if ( !Result )
-	{
-		// log error
-	}
-	return Result;
-}
-
-bool PageGuardException::InRange( std::uintptr_t Address )
-{
-	return ( Address >= this->AllocBase && Address < ( this->AllocBase + this->AllocSize ) );
-}
-
-//bool IsMyPGTrapFlag( EXCEPTION_POINTERS* pExceptionInfo, std::map<std::uint32_t, StepBkp>::iterator ThreadStepIt )
-//{
-//	auto pContext   = pExceptionInfo->ContextRecord;
-//	auto pException = pExceptionInfo->ExceptionRecord;
-//
-//	auto& [_, Step] = ( *ThreadStepIt );
-//
-//	auto  PageBase  = Step.AllocBase;
-//
-//	auto PGEit = std::find_if( MgrPGE::GetPageExceptionsList( ).begin( ), MgrPGE::GetPageExceptionsList( ).end( ),
-//		[ PageBase ]( PageGuardException& PGE )
-//		{
-//			return ( PageBase == PGE.AllocBase );
-//		} );
-//
-//	if ( PGEit == MgrPGE::GetPageExceptionsList( ).end( ) )
-//		return false;
-//
-//	auto IsTracing = ( Step.Trigger.Callback != nullptr );
-//
-//
-//	printf( "IsSingle Address: %p, IsTracing %d\n", pException->ExceptionAddress, IsTracing );
-//
-//	auto& PGE = ( *PGEit );
-//
-//	PGE.RestorePageGuardProtection( );
-//
-//	if ( IsTracing )
-//		MgrPGE::GetThreadHandlingList( ).erase( ThreadStepIt );
-//
-//	return true;
-//}
-
-#ifdef USE_SWBREAKPOINT
-bool PatchMem( void* dst, void* src, std::size_t size )
-{
-	DWORD dwOld = 0;
-
-	SIZE_T sSize = size;
-	void* Address = dst;
-
-	auto Status = NtProtectVirtualMemory( (HANDLE)( -1 ), &Address,
-		&sSize, PAGE_EXECUTE_READWRITE, &dwOld );
-
-	if ( Status == 0 )
-	{
-		memcpy( dst, src, size );
-
-		NtProtectVirtualMemory( (HANDLE)( -1 ), &Address,
-			&sSize, dwOld, &dwOld );
-	}
-	return Status == 0;
-}
-
-template <typename T1, typename T2>
-bool PatchMem( T1 dst, T2 src, std::size_t size )
-{
-	return PatchMem( (void*)dst, (void*)src, size );
-}
-
-
-template <typename T1, typename T2>
-bool PatchMem( T1 dst, T2 val )
-{
-	return PatchMem( (void*)dst, (void*)( &val ), sizeof( val ) );
-}
-
-bool TracerCallBack( EXCEPTION_POINTERS* pExceptionInfo, StepBkp& Step, std::vector<PageGuardException>::iterator PGEit )
-{
-	auto&             PGE      = ( *PGEit );
-
-	PCONTEXT          pContext = pExceptionInfo->ContextRecord;
-
-	PEXCEPTION_RECORD pException = pExceptionInfo->ExceptionRecord;
-
-	if ( EXCEPTION_BREAKPOINT == Step.NextExceptionCode )
-	{
-		if ( pException->ExceptionCode == EXCEPTION_BREAKPOINT )
-		{
-			printf( "Restore to original byte\n" );
-			PatchMem( pException->ExceptionAddress,
-				Step.OriginalByte );
-
-			Step.NextExceptionCode = 0;
-
-			Step.AddressToHit      = 0;
-
-			Step.OriginalByte      = 0;
-		}
-		else
-			return true;
-	}
-
-	auto Result = Step.Trigger.Callback( pException, pContext );
-
-	switch ( Result )
-	{
-	case CBReturn::StopTrace:
-		{
-			Step.NextExceptionCode = 0;
-			return false;
-		}
-	case CBReturn::StepInto:
-		{
-			if ( PageGuardTriggerType::Execute != Step.Trigger.Type || !PGE.InRange( pContext->REG( ip ) ) )
-			{
-				printf( "set tf\n" );
-				Step.NextExceptionCode = EXCEPTION_SINGLE_STEP;
-				SET_TRAP_FLAG( pContext );
-			}
-
-			break;
-		}
-	case CBReturn::StepOver:
-		{
-		    auto CallSize = Utils::IsCallInstruction( pContext->REG( ip ) );
-			{ 
-				if ( CallSize == 0 )
-				{
-					printf( "CallSize is zero\n" );
-
-					if ( PageGuardTriggerType::Execute != Step.Trigger.Type || !PGE.InRange( pContext->REG( ip ) ) )
-					{
-						printf( "set tf\n" );
-						Step.NextExceptionCode = EXCEPTION_SINGLE_STEP;
-						SET_TRAP_FLAG( pContext );
-					}
-
-				}
-				else
-				{
-					printf( "CallSize=%d\n", CallSize );
-					auto NextInstrutionAddr = pContext->REG( ip ) + CallSize;
-					Step.NextExceptionCode = EXCEPTION_BREAKPOINT;
-					Step.AddressToHit = NextInstrutionAddr;
-					Step.OriginalByte = *reinterpret_cast<std::uint8_t*>( NextInstrutionAddr );
-					PatchMem( NextInstrutionAddr,
-						std::uint8_t(0xCC) );
-				}
-			}
-
-			break;
-		}
-	default:
-		break;
-	}
-
-	
-	return true;
-};
-#else
-bool TracerCallBack( EXCEPTION_POINTERS* pExceptionInfo, StepBkp& Step, std::vector<PageGuardException>::iterator PGEit )
-{
-	auto&             PGE         = ( *PGEit );
-
-	PCONTEXT          pContext    = pExceptionInfo->ContextRecord;
-
-	PEXCEPTION_RECORD pException  = pExceptionInfo->ExceptionRecord;
-
-	if ( Step.NextExceptionCode == STILL_ACTIVE )
-	{
-		Step.NextExceptionCode = 0;
-		return true;
-	}
-
-	auto Result                   = Step.Trigger.Callback( pException, pContext );
-
-	auto CurrentAddress           = pContext->REG( ip );
-
-	auto IsRange                  = PGE.InRange( CurrentAddress );
-
-	if ( !IsRange )
-	{
-		auto FoundPGEit = std::find_if( //check if this point is already included any existing page
-
-			MgrPGE::GetPageExceptionsList( ).begin( ),
-
-			MgrPGE::GetPageExceptionsList( ).end( ),
-
-			[ CurrentAddress ]( PageGuardException& PGE )
-			{
-				return PGE.InRange( CurrentAddress );
-			} );
-
-		if ( FoundPGEit != MgrPGE::GetPageExceptionsList( ).end( ) )
-		{
-			IsRange        = true;
-
-			Step.AllocBase = ( *FoundPGEit ).AllocBase; // update to existing page base
-		}
-	}
-
-
-	switch ( Result )
-	{
-	case CBReturn::StopTrace:
-		{
-			Step.NextExceptionCode = 0;
-			return false;
-		}
-	case CBReturn::StepInto:
-		{
-			if ( !IsRange )
-			{
-				Step.NextExceptionCode = EXCEPTION_SINGLE_STEP;
-				SET_TRAP_FLAG( pContext );
-			}
-
-			break;
-		}
-	case CBReturn::StepOver:
-		{
-		    auto CallSize = Utils::IsCallInstruction( pContext->REG( ip ) );
-			{ 
-				if ( CallSize > 0 )
-				{
-					// to skip call
-					Step.NextExceptionCode = STILL_ACTIVE;
-				}
-
-				if ( !IsRange )
-				{
-					// go to add this page
-					MEMORY_BASIC_INFORMATION	mbi		= {};
-
-					SIZE_T						rSize	= 0;
-
-					auto Status = NtQueryVirtualMemory( (HANDLE)-1, reinterpret_cast<void*>( CurrentAddress ), MemoryBasicInformation, &mbi, sizeof( mbi ), &rSize );
-
-					if ( Status != 0 )
-					{
-						return false;
-					}
-
-					DWORD SetProtection     = mbi.Protect;
-
-					if ( ( mbi.Protect & PAGE_GUARD ) == 0 )
-					{
-						SetProtection		= mbi.Protect | PAGE_GUARD;
-					}
-
-					printf( "BaseAddress: 0x%p, RegionSize: 0x%llX\n", mbi.BaseAddress, mbi.RegionSize );
-
-					PageGuardException PageInfo  = {
-
-						.AllocBase			= reinterpret_cast<uintptr_t>( mbi.BaseAddress ),
-
-						.AllocSize			= mbi.RegionSize,
-
-						.OldProtection		= mbi.Protect,
-
-						.SetProtection		= SetProtection,
-					};
-
-					if ( PGE.PGTriggersList.empty( ) ) // if is not empty, it's mean that is the initial page breakpoint
-					{
-						MgrPGE::GetPageExceptionsList( ).erase( PGEit );
-					}
-
-					MgrPGE::GetPageExceptionsList( ).push_back( PageInfo ); // add new page for going on tracing
-
-					DWORD dwOld             = 0;
-
-					Status                  = NtProtectVirtualMemory( (HANDLE)-1, &mbi.BaseAddress, &mbi.RegionSize, SetProtection, &dwOld );
-
-					if ( Status != 0 )
-					{
-						// log error
-						return false;
-					}
-
-					Step.AllocBase          = PageInfo.AllocBase; // update new page base
-				}
-
-			}
-
-			break;
-		}
-	default:
-		break;
-	}
-
-	
-	return true;
-};
-
-#endif
+#include "PGETracer.h"
 
 bool IsThreadInHandling( EXCEPTION_POINTERS* pExceptionInfo )
 {
@@ -326,25 +14,9 @@ bool IsThreadInHandling( EXCEPTION_POINTERS* pExceptionInfo )
 
 #ifdef USE_SWBREAKPOINT
 
-	if ( EXCEPTION_BREAKPOINT == pException->ExceptionCode )
+	if ( PGETracer::ResolverMultiplesSwBrkpt( pException ) )
 	{
-		const auto ExceptAddress  = reinterpret_cast<uintptr_t>( pException->ExceptionAddress );
-
-		const auto CurrentID      = GetCurrentThreadId( );
-
-		auto ThreadIt = std::find_if( MgrPGE::GetThreadHandlingList( ).begin( ), MgrPGE::GetThreadHandlingList( ).end( ),
-			[ CurrentID, ExceptAddress ]( auto& ThreadIt )
-			{
-				auto& [ThreadId, Step] = ThreadIt;
-
-				return ( CurrentID != ThreadId && Step.AddressToHit == ExceptAddress );
-			} 
-		);
-
-		if ( MgrPGE::GetThreadHandlingList( ).end( ) != ThreadIt )
-		{
-			return true;
-		}
+		return true;
 	}
 
 #endif
@@ -362,23 +34,16 @@ bool IsThreadInHandling( EXCEPTION_POINTERS* pExceptionInfo )
 
 	auto const IsTracing    = ( Step.Trigger.Callback != nullptr );
 
-	auto const IsTF         = IS_TRAP_FLAG( pContext );
-
-	auto const IsSoftBkp    = pException->ExceptionCode == EXCEPTION_BREAKPOINT;
-
 	auto const IsPG         = pException->ExceptionCode == EXCEPTION_GUARD_PAGE;
-
-	//printf( "ExceptionAddress: %p, ExceptionCode: %X, IsTF: %d, IsSoftBkp: %d, IsPG: %d, Exec: %d\n", pException->ExceptionAddress, pException->ExceptionCode, IsTF, IsSoftBkp, IsPG, PageGuardTriggerType::Execute == Step.Trigger.Type );
-	//if ( pException->ExceptionCode == EXCEPTION_ACCESS_VIOLATION )
-	//{
-	//	MessageBoxA( 0, "a", "b", 0 );
-	//}
 	
 	if ( IsSingleStep || ( Step.NextExceptionCode == pException->ExceptionCode ) )
 	{
 		auto  PageBase  = Step.AllocBase;
 
-		auto PGEit = std::find_if( MgrPGE::GetPageExceptionsList( ).begin( ), MgrPGE::GetPageExceptionsList( ).end( ),
+		auto PGEit = std::find_if( 
+
+			MgrPGE::GetPageExceptionsList( ).begin( ), MgrPGE::GetPageExceptionsList( ).end( ),
+
 			[ PageBase ]( PageGuardException& PGE )
 			{
 				return ( PageBase == PGE.AllocBase );
@@ -387,11 +52,9 @@ bool IsThreadInHandling( EXCEPTION_POINTERS* pExceptionInfo )
 		if ( PGEit == MgrPGE::GetPageExceptionsList( ).end( ) )
 			return false;
 
-		auto IsTracing = ( Step.Trigger.Callback != nullptr );
-
 		if ( IsTracing )
 		{
-			auto Continue = TracerCallBack( pExceptionInfo, Step, PGEit );
+			auto Continue = PGETracer::ManagerCall( pExceptionInfo, Step, PGEit );
 
 			if ( !Continue )
 			{
@@ -418,8 +81,6 @@ bool IsThreadInHandling( EXCEPTION_POINTERS* pExceptionInfo )
 
 long __stdcall MgrPGE::CheckPageGuardExceptions( EXCEPTION_POINTERS* pExceptionInfo )
 {
-	//printf( "MgrPGE::CheckPageGuardExceptions\n" );
-
 	EnterCriticalSection( MgrPGE::GetCs( ) );
 
 	if ( IsThreadInHandling( pExceptionInfo ) )
@@ -429,8 +90,11 @@ long __stdcall MgrPGE::CheckPageGuardExceptions( EXCEPTION_POINTERS* pExceptionI
 	}
 
 	auto ContextRecord		= pExceptionInfo->ContextRecord;
+
 	auto ExceptionRecord	= pExceptionInfo->ExceptionRecord;
+
 	auto ExceptionCode		= pExceptionInfo->ExceptionRecord->ExceptionCode;
+
 	auto ExceptionAddress	= reinterpret_cast<uintptr_t>( pExceptionInfo->ExceptionRecord->ExceptionAddress );
 
 	if ( 

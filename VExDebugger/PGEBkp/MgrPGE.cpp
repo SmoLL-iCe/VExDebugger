@@ -19,13 +19,34 @@ void InitCS( )
 	}
 }
 
+bool PageGuardException::RestorePageGuardProtection( )
+{
+	DWORD dwOld = 0;
+
+	auto Status = NtProtectVirtualMemory( (HANDLE)( -1 ),
+		reinterpret_cast<void**>( &this->AllocBase ),
+		reinterpret_cast<SIZE_T*>( &this->AllocSize ), this->SetProtection, &dwOld );
+
+	auto Result = Status == 0;
+	if ( !Result )
+	{
+		// log error
+	}
+	return Result;
+}
+
+bool PageGuardException::InRange( std::uintptr_t Address )
+{
+	return ( Address >= this->AllocBase && Address < ( this->AllocBase + this->AllocSize ) );
+}
+
 std::vector<PageGuardException> PGExceptionsList{};
 
 std::vector<PageGuardException>& MgrPGE::GetPageExceptionsList( )
 {
 	return PGExceptionsList;
 }
-//std::vector<uint32_t> Threads = {};
+
 std::map<std::uint32_t, StepBkp> ThreadsSteps{};
 
 std::map<std::uint32_t, StepBkp>& MgrPGE::GetThreadHandlingList( )
@@ -44,13 +65,17 @@ PageGuardTriggerType ConvertToPGTrigger( BkpTrigger Trigger )
 	{
 	case BkpTrigger::Execute:
 		return PageGuardTriggerType::Execute;
+
 	case BkpTrigger::ReadWrite:
 		return PageGuardTriggerType::ReadWrite;
+
 	case BkpTrigger::Write:
 		return PageGuardTriggerType::Write;
+
 	default:
 		break;
 	}
+
 	return static_cast<PageGuardTriggerType>( -1 );
 }
 
@@ -60,12 +85,16 @@ size_t ConvertToSize( BkpSize s )
 	{
 	case BkpSize::Size_1:
 		return 1;
+
 	case BkpSize::Size_2:
 		return 2;
+
 	case BkpSize::Size_8:
 		return 8;
+
 	case BkpSize::Size_4:
 		return 4;
+
 	default:
 		break;
 	}

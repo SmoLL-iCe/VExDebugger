@@ -2,7 +2,6 @@
 #include <Windows.h>
 #include <map>
 #include "PGE.hpp"
-#include "../../import/include/VExDebugger.h"
 
 namespace MgrPGE
 { 

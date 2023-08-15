@@ -91,6 +91,9 @@
     <ClInclude Include="PGEBkp\PGE.hpp">
       <Filter>VExDebugger\PGEBkp</Filter>
     </ClInclude>
+    <ClInclude Include="PGEBkp\PGETracer.h">
+      <Filter>VExDebugger\PGEBkp</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="VExDebugger.cpp">
@@ -133,6 +136,9 @@
       <Filter>VExDebugger\PGEBkp</Filter>
     </ClCompile>
     <ClCompile Include="PGEBkp\PGEHandler.cpp">
+      <Filter>VExDebugger\PGEBkp</Filter>
+    </ClCompile>
+    <ClCompile Include="PGEBkp\PGETracer.cpp">
       <Filter>VExDebugger\PGEBkp</Filter>
     </ClCompile>
   </ItemGroup>

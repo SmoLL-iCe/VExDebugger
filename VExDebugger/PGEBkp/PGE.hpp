@@ -1,8 +1,9 @@
 #pragma once
 #include <algorithm>
 #include <vector>
+#include "../../import/include/VExDebugger.h"
 
-//#define USE_SWBREAKPOINT
+//#define USE_SWBREAKPOINT // it faster than pg
 
 enum PageGuardTriggerType : std::uint32_t
 {
@@ -24,13 +25,11 @@ struct StepBkp
 {
 	std::uintptr_t	            AllocBase           = 0;
 	PageGuardTrigger            Trigger             = {};
-	//std::uintptr_t	            CurrentBase         = 0;
 #ifdef USE_SWBREAKPOINT
 	std::uintptr_t	            AddressToHit        = 0;
 	std::uint8_t                OriginalByte        = 0;
-#else
-	std::uint32_t               NextExceptionCode   = 0;
 #endif
+	std::uint32_t               NextExceptionCode   = 0;
 };
 
 struct PageGuardException
@@ -39,7 +38,6 @@ struct PageGuardException
 	std::uintptr_t	AllocSize			= 0;
 	std::uint32_t	OldProtection		= 0;
 	std::uint32_t	SetProtection		= 0;
-	//bool		ReSet				= false;
 	std::vector<PageGuardTrigger> PGTriggersList;
 
 	bool RestorePageGuardProtection( );
