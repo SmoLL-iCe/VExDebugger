@@ -83,8 +83,12 @@ bool MgrPGE::AddPageExceptions( uintptr_t Address, BkpTrigger TriggerType, BkpSi
 
 	auto Size = ConvertToSize( bSize );
 
-	auto PGEit = std::find_if( PGExceptionsList.begin( ), PGExceptionsList.end( ),
+	auto PGEit = std::find_if( 
+		
+		PGExceptionsList.begin( ), PGExceptionsList.end( ),
+
 		[ Address ]( PageGuardException& PGE ) {
+
 			return  PGE.InRange( Address );
 		} );
 
@@ -113,19 +117,27 @@ bool MgrPGE::AddPageExceptions( uintptr_t Address, BkpTrigger TriggerType, BkpSi
 			SetProtection		= mbi.Protect | PAGE_GUARD;
 		}
 
-		printf( "BaseAddress: 0x%p, RegionSize: 0x%lX\n", mbi.BaseAddress, mbi.RegionSize );
+		printf( "BaseAddress: 0x%p, RegionSize: 0x%llX\n", mbi.BaseAddress, mbi.RegionSize );
 
 		PageGuardException PageInfo  = {
+
 			.AllocBase			= reinterpret_cast<uintptr_t>( mbi.BaseAddress ),
+
 			.AllocSize			= mbi.RegionSize,
+
 			.OldProtection		= mbi.Protect,
+
 			.SetProtection		= SetProtection,
 		};
 
 		PageInfo.PGTriggersList.push_back( {
+
 			.Type				= ConvertToPGTrigger( TriggerType ),
+
 			.Offset				= Address - PageInfo.AllocBase,
+
 			.Size				= Size,
+
 			.Callback           = Callback,
 		} );
 
@@ -136,8 +148,11 @@ bool MgrPGE::AddPageExceptions( uintptr_t Address, BkpTrigger TriggerType, BkpSi
 		auto& Info              = ( *PGEit );
 
 		auto PGTit              = std::find_if(
+
 			Info.PGTriggersList.begin( ),
+
 			Info.PGTriggersList.end( ),
+
 			[ Address, TriggerType, Info ]( PageGuardTrigger& Trigger )
 			{
 				return ( Address >= ( Info.AllocBase + Trigger.Offset ) &&
@@ -159,9 +174,13 @@ bool MgrPGE::AddPageExceptions( uintptr_t Address, BkpTrigger TriggerType, BkpSi
 		}
 
 		Info.PGTriggersList.push_back( {
+
 			.Type				= ConvertToPGTrigger( TriggerType ),
+
 			.Offset				= Address - Info.AllocBase,
+
 			.Size				= Size,
+
 			.Callback           = Callback,
 		} );
 
@@ -200,8 +219,14 @@ bool MgrPGE::RemovePageExceptions( uintptr_t Address, BkpTrigger TriggerType )
 
 	EnterCriticalSection( MgrPGE::GetCs( ) );
 
-	auto BkpIt = std::find_if( VExInternal::GetBreakpointList( ).begin( ), VExInternal::GetBreakpointList( ).end( ),
+	auto BkpIt = std::find_if( 
+
+		VExInternal::GetBreakpointList( ).begin( ), 
+
+		VExInternal::GetBreakpointList( ).end( ),
+
 		[ Address ]( auto& Pair ) {
+
 			return ( Address == Pair.first );
 		}
 	);
@@ -213,7 +238,9 @@ bool MgrPGE::RemovePageExceptions( uintptr_t Address, BkpTrigger TriggerType )
 	}
 
 	auto PGEit = std::find_if( PGExceptionsList.begin( ), PGExceptionsList.end( ), 
+
 		[ Address ]( PageGuardException& PGE ) {
+
 			return PGE.InRange( Address );
 		} );
 
@@ -226,8 +253,11 @@ bool MgrPGE::RemovePageExceptions( uintptr_t Address, BkpTrigger TriggerType )
 	auto& Info              = ( *PGEit );
 
 	auto PGTit              = std::find_if(
+
 		Info.PGTriggersList.begin( ),
+
 		Info.PGTriggersList.end( ),
+
 		[ Address, TriggerType, Info ]( PageGuardTrigger& Trigger )
 		{
 			return ( Address == ( Info.AllocBase + Trigger.Offset ) && ConvertToPGTrigger( TriggerType ) == Trigger.Type );

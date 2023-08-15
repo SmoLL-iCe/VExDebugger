@@ -2,6 +2,8 @@
 #include <algorithm>
 #include <vector>
 
+//#define USE_SWBREAKPOINT
+
 enum PageGuardTriggerType : std::uint32_t
 {
 	Execute = 8,
@@ -21,10 +23,14 @@ struct PageGuardTrigger
 struct StepBkp
 {
 	std::uintptr_t	            AllocBase           = 0;
-	std::uint32_t               NextExceptionCode       = 0;
-	std::uintptr_t	            AddressToHit = 0;
-	std::uint8_t                OriginalByte       = 0;
 	PageGuardTrigger            Trigger             = {};
+	//std::uintptr_t	            CurrentBase         = 0;
+#ifdef USE_SWBREAKPOINT
+	std::uintptr_t	            AddressToHit        = 0;
+	std::uint8_t                OriginalByte        = 0;
+#else
+	std::uint32_t               NextExceptionCode   = 0;
+#endif
 };
 
 struct PageGuardException

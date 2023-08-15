@@ -4,12 +4,12 @@
 
 #define SET_BITS(dr7, low_bit, bits, new_value) \
     do { \
-        const auto mask = (std::intptr_t(1) << bits) - 1; \
-        dr7 = (dr7 & ~(mask << low_bit)) | (std::intptr_t(new_value) << low_bit); \
+        const auto mask = (std::intptr_t(1) << (bits)) - 1; \
+        dr7 = (dr7 & ~(mask << (low_bit))) | (std::intptr_t(new_value) << std::intptr_t(low_bit)); \
     } while (0)
 
 #define GET_BITS(dr7, low_bit, bits) \
-    ((dr7 >> low_bit) & ((std::intptr_t(1) << bits) - 1))
+    ((dr7 >> (low_bit)) & ((std::intptr_t(1) << (bits)) - 1))
 
 #define IS_ENABLE_DR7_INDEX( ctx, index )         GET_BITS( ctx->Dr7, static_cast<std::uintptr_t>( index ) * 2, 1 ) == 1
 

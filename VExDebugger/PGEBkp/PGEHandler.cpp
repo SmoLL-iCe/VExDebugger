@@ -8,7 +8,6 @@
 #include "../Tools/ntos.h"
 #include "../Tools/Utils.h"
 
-#define USE_SWBREAKPOINT
 
 bool PageGuardException::RestorePageGuardProtection( )
 {
@@ -98,8 +97,10 @@ bool PatchMem( T1 dst, T2 val )
 	return PatchMem( (void*)dst, (void*)( &val ), sizeof( val ) );
 }
 
-bool TracerCallBack( EXCEPTION_POINTERS* pExceptionInfo, StepBkp& Step, PageGuardException& PGE )
+bool TracerCallBack( EXCEPTION_POINTERS* pExceptionInfo, StepBkp& Step, std::vector<PageGuardException>::iterator PGEit )
 {
+	auto&             PGE      = ( *PGEit );
+
 	PCONTEXT          pContext = pExceptionInfo->ContextRecord;
 
 	PEXCEPTION_RECORD pException = pExceptionInfo->ExceptionRecord;
@@ -179,6 +180,142 @@ bool TracerCallBack( EXCEPTION_POINTERS* pExceptionInfo, StepBkp& Step, PageGuar
 	
 	return true;
 };
+#else
+bool TracerCallBack( EXCEPTION_POINTERS* pExceptionInfo, StepBkp& Step, std::vector<PageGuardException>::iterator PGEit )
+{
+	auto&             PGE         = ( *PGEit );
+
+	PCONTEXT          pContext    = pExceptionInfo->ContextRecord;
+
+	PEXCEPTION_RECORD pException  = pExceptionInfo->ExceptionRecord;
+
+	if ( Step.NextExceptionCode == STILL_ACTIVE )
+	{
+		Step.NextExceptionCode = 0;
+		return true;
+	}
+
+	auto Result                   = Step.Trigger.Callback( pException, pContext );
+
+	auto CurrentAddress           = pContext->REG( ip );
+
+	auto IsRange                  = PGE.InRange( CurrentAddress );
+
+	if ( !IsRange )
+	{
+		auto FoundPGEit = std::find_if( //check if this point is already included any existing page
+
+			MgrPGE::GetPageExceptionsList( ).begin( ),
+
+			MgrPGE::GetPageExceptionsList( ).end( ),
+
+			[ CurrentAddress ]( PageGuardException& PGE )
+			{
+				return PGE.InRange( CurrentAddress );
+			} );
+
+		if ( FoundPGEit != MgrPGE::GetPageExceptionsList( ).end( ) )
+		{
+			IsRange        = true;
+
+			Step.AllocBase = ( *FoundPGEit ).AllocBase; // update to existing page base
+		}
+	}
+
+
+	switch ( Result )
+	{
+	case CBReturn::StopTrace:
+		{
+			Step.NextExceptionCode = 0;
+			return false;
+		}
+	case CBReturn::StepInto:
+		{
+			if ( !IsRange )
+			{
+				Step.NextExceptionCode = EXCEPTION_SINGLE_STEP;
+				SET_TRAP_FLAG( pContext );
+			}
+
+			break;
+		}
+	case CBReturn::StepOver:
+		{
+		    auto CallSize = Utils::IsCallInstruction( pContext->REG( ip ) );
+			{ 
+				if ( CallSize > 0 )
+				{
+					// to skip call
+					Step.NextExceptionCode = STILL_ACTIVE;
+				}
+
+				if ( !IsRange )
+				{
+					// go to add this page
+					MEMORY_BASIC_INFORMATION	mbi		= {};
+
+					SIZE_T						rSize	= 0;
+
+					auto Status = NtQueryVirtualMemory( (HANDLE)-1, reinterpret_cast<void*>( CurrentAddress ), MemoryBasicInformation, &mbi, sizeof( mbi ), &rSize );
+
+					if ( Status != 0 )
+					{
+						return false;
+					}
+
+					DWORD SetProtection     = mbi.Protect;
+
+					if ( ( mbi.Protect & PAGE_GUARD ) == 0 )
+					{
+						SetProtection		= mbi.Protect | PAGE_GUARD;
+					}
+
+					printf( "BaseAddress: 0x%p, RegionSize: 0x%llX\n", mbi.BaseAddress, mbi.RegionSize );
+
+					PageGuardException PageInfo  = {
+
+						.AllocBase			= reinterpret_cast<uintptr_t>( mbi.BaseAddress ),
+
+						.AllocSize			= mbi.RegionSize,
+
+						.OldProtection		= mbi.Protect,
+
+						.SetProtection		= SetProtection,
+					};
+
+					if ( PGE.PGTriggersList.empty( ) ) // if is not empty, it's mean that is the initial page breakpoint
+					{
+						MgrPGE::GetPageExceptionsList( ).erase( PGEit );
+					}
+
+					MgrPGE::GetPageExceptionsList( ).push_back( PageInfo ); // add new page for going on tracing
+
+					DWORD dwOld             = 0;
+
+					Status                  = NtProtectVirtualMemory( (HANDLE)-1, &mbi.BaseAddress, &mbi.RegionSize, SetProtection, &dwOld );
+
+					if ( Status != 0 )
+					{
+						// log error
+						return false;
+					}
+
+					Step.AllocBase          = PageInfo.AllocBase; // update new page base
+				}
+
+			}
+
+			break;
+		}
+	default:
+		break;
+	}
+
+	
+	return true;
+};
+
 #endif
 
 bool IsThreadInHandling( EXCEPTION_POINTERS* pExceptionInfo )
@@ -252,11 +389,9 @@ bool IsThreadInHandling( EXCEPTION_POINTERS* pExceptionInfo )
 
 		auto IsTracing = ( Step.Trigger.Callback != nullptr );
 
-		auto& PGE = ( *PGEit );
-
 		if ( IsTracing )
 		{
-			auto Continue = TracerCallBack( pExceptionInfo, Step, PGE );
+			auto Continue = TracerCallBack( pExceptionInfo, Step, PGEit );
 
 			if ( !Continue )
 			{
@@ -268,7 +403,7 @@ bool IsThreadInHandling( EXCEPTION_POINTERS* pExceptionInfo )
 			MgrPGE::GetThreadHandlingList( ).erase( ThreadIt );
 		}
 
-		PGE.RestorePageGuardProtection( );
+		( *PGEit ).RestorePageGuardProtection( );
 
 	}else
 
@@ -342,8 +477,6 @@ long __stdcall MgrPGE::CheckPageGuardExceptions( EXCEPTION_POINTERS* pExceptionI
 
 	auto& PGE                           = ( *PGEit );
 
-	//PGE.ReSet							= true;
-
 	auto TriggedIt = std::find_if( PGE.PGTriggersList.begin( ), PGE.PGTriggersList.end( ), 
 		[ CurrentAddress, ExceptionInfoTrigger, PGE ]( PageGuardTrigger& PGT )
 		{ 
@@ -393,21 +526,9 @@ long __stdcall MgrPGE::CheckPageGuardExceptions( EXCEPTION_POINTERS* pExceptionI
 
 
 	MgrPGE::GetThreadHandlingList( )[ GetCurrentThreadId( ) ] = {
-		.AllocBase = PGE.AllocBase,
-		.Trigger = SetTrigger,
+		.AllocBase    = PGE.AllocBase,
+		.Trigger      = SetTrigger,
 	};
-	
-
-	//bool SetInReset = true;
-
-
-
-
-	//if ( SetInReset )
-
-
-
-	//PGE.Threads.push_back( GetCurrentThreadId( ) );
 
 	// if page guard was hitted, the page guard was removed
 	// set tf for next instruction call the handler again and restore the page guard again
