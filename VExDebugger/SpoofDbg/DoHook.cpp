@@ -86,8 +86,8 @@ std::vector<uint8_t> DoHook::MakeJmp( void* SrcAddress, void* DstAddress )
 
     result[ 0 ] = 0xE9;
 
-    *reinterpret_cast<uint32_t*>( &result[ 1 ] ) = ( reinterpret_cast<uint32_t>( DstAddress ) - 
-        reinterpret_cast<uint32_t>( SrcAddress ) ) - 5;
+    *reinterpret_cast<uint32_t*>( &result[ 1 ] ) = ( *reinterpret_cast<uint32_t*>( &DstAddress ) - 
+        *reinterpret_cast<uint32_t*>( &SrcAddress ) ) - 5;
 
     return result;
 }

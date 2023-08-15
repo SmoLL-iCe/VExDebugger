@@ -84,8 +84,8 @@ bool MgrPGE::AddPageExceptions( uintptr_t Address, BkpTrigger TriggerType, BkpSi
 	auto Size = ConvertToSize( bSize );
 
 	auto PGEit = std::find_if( PGExceptionsList.begin( ), PGExceptionsList.end( ),
-		[ Address ]( PageGuardException& Info ) {
-			return  ( Address >= Info.AllocBase && Address <= ( Info.AllocBase + Info.AllocSize ) );
+		[ Address ]( PageGuardException& PGE ) {
+			return  PGE.InRange( Address );
 		} );
 
 	MEMORY_BASIC_INFORMATION	mbi		= {};
@@ -213,8 +213,8 @@ bool MgrPGE::RemovePageExceptions( uintptr_t Address, BkpTrigger TriggerType )
 	}
 
 	auto PGEit = std::find_if( PGExceptionsList.begin( ), PGExceptionsList.end( ), 
-		[ Address ]( PageGuardException& Info ) {
-			return  ( Address >= Info.AllocBase && Address <= ( Info.AllocBase + Info.AllocSize ) );
+		[ Address ]( PageGuardException& PGE ) {
+			return PGE.InRange( Address );
 		} );
 
 	if ( PGEit == PGExceptionsList.end( ) )

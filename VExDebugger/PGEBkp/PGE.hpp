@@ -21,6 +21,9 @@ struct PageGuardTrigger
 struct StepBkp
 {
 	std::uintptr_t	            AllocBase           = 0;
+	std::uint32_t               NextExceptionCode       = 0;
+	std::uintptr_t	            AddressToHit = 0;
+	std::uint8_t                OriginalByte       = 0;
 	PageGuardTrigger            Trigger             = {};
 };
 
@@ -34,4 +37,5 @@ struct PageGuardException
 	std::vector<PageGuardTrigger> PGTriggersList;
 
 	bool RestorePageGuardProtection( );
+	bool InRange( std::uintptr_t Address );
 };

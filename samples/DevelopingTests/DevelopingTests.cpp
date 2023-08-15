@@ -650,6 +650,16 @@ int oldmain( )
 
 int main( )
 {
+	for ( size_t i = 0; i < sizeof( shell_code ); i++ )
+	{
+		if ( *reinterpret_cast<uint64_t*>( &shell_code[ i ] ) == 0xCCCCCCCCCCCCCCCC )
+		{
+			*reinterpret_cast<uint64_t*>( &shell_code[ i ] ) = uint64_t( &Sleep );
+			i += 7;
+
+		}
+	}
+
 	auto AllocMem = (uint8_t*)(VirtualAlloc( nullptr, 0x2000, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE ));
 
 	if ( !AllocMem )
@@ -675,8 +685,16 @@ int main( )
 	MgrPGE::AddPageExceptions( newPoint, BkpTrigger::Execute, BkpSize::Size_4,
 		[ ]( PEXCEPTION_RECORD pExceptionRec, PCONTEXT pContext ) -> CBReturn
 		{
-			printf( "Called callback = 0x%llX\n", pContext->Rip );
-			return CBReturn::StepInto;
+			static int count = 0;
+			printf( "Called callback = 0x%llX, count: %d\n", pContext->Rip, ++count );
+
+			//if ( count > 26 )
+			//{
+
+			//	return CBReturn::StopTrace;
+			//}
+			return CBReturn::StepOver;
+			//return CBReturn::StepInto;
 		}
 	);
 	//MgrPGE::AddPageExceptions( Point, BkpTrigger::Write, BkpSize::Size_4 );
@@ -699,6 +717,7 @@ int main( )
 		printf( "v: %X\n", v );
 		MessageBoxA( 0, "Execute end", "Execute", 0 );
 	}
+
 	MgrPGE::RemovePageExceptions( newPoint, BkpTrigger::Execute );
 
 	//{ // Read
