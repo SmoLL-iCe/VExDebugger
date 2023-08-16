@@ -1,7 +1,6 @@
 #include "SpoofDbg.h"
 #include "../Tools/WinWrap.h"
 #include "DoHook.h"
-#include "../HwBkp/MgrHwBkp.h"
 
 bool	isHookedNtGetContextThread	= false;
 bool	isHookedNtContinue			= false;

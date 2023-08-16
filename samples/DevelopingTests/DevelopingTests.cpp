@@ -7,7 +7,7 @@
 #include "color.hpp"
 #include "../../VExDebugger/Tools/ntos.h"
 #include "shell.hpp"
-#include "../../VExDebugger/PGEBkp/MgrPGE.h"
+#include "../../VExDebugger/PGEBkp/PGEMgr.h"
 
 #define MM "MD"
 #ifdef _MT
@@ -647,56 +647,94 @@ int oldmain( )
 
 
 
+static int ThreadsCount = 0;
+static int ThreadsCountChange = 0;
 
-int main( )
+int testPGE( )
 {
+	auto Tid        = GetCurrentThreadId( );
+
+	auto StrTID     = std::to_string( Tid );
+
 	for ( size_t i = 0; i < sizeof( shell_code ); i++ )
 	{
-		if ( *reinterpret_cast<uint64_t*>( &shell_code[ i ] ) == 0xCCCCCCCCCCCCCCCC )
+		if ( *reinterpret_cast<uint64_t*>( &shell_code[ i ] ) == 0xCCCCCCCCCCCCCCCC ) // change calls to test tracer StepOver
 		{
 			*reinterpret_cast<uint64_t*>( &shell_code[ i ] ) = uint64_t( &Sleep );
+
 			i += 7;
 
 		}
 	}
 
-	auto AllocMem = (uint8_t*)(VirtualAlloc( nullptr, 0x2000, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE ));
+	uint8_t* AllocMem = nullptr;
+
+	AllocMem = reinterpret_cast<uint8_t*>( VirtualAlloc( nullptr, 0x2000, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE ) );
 
 	if ( !AllocMem )
 	{
-		printf( "Enough resources\n" );
+		printf( "[Thread: %d] Enough resources\n", Tid );
 		return getchar( );
 	}
 
-	printf( "AllocMem: 0x%p\n", AllocMem );
+	printf( "[Thread: %d] AllocMem: 0x%p\n", Tid, AllocMem );
 
-	auto newPoint = (uintptr_t)(AllocMem)+( 0x1000ull - 0x30 );
+	auto NewPoint = reinterpret_cast<uintptr_t>( AllocMem ) + ( 0x1000ull - 0x30 );
 
-	memcpy( (void*)newPoint, shell_code, sizeof( shell_code ) );
+	memcpy( reinterpret_cast<void*>( NewPoint ), shell_code, sizeof( shell_code ) );
 
-	DWORD p;
-	VirtualProtect( (void*)( AllocMem + 0x1000 ), 0x1000, PAGE_EXECUTE_READ, &p );
+	DWORD p = 0;
 
-	printf( "newPoint: 0x%p\n", (void*)newPoint );
+	if ( !VirtualProtect( reinterpret_cast<void*>( AllocMem + 0x1000 ), 0x1000, PAGE_EXECUTE_READ, &p ) )
+	{
+		printf( "[Thread: %d] Fail VP\n", Tid );
+		return getchar( );
+	}
 
+	printf( "[Thread: %d] NewPoint: 0x%p\n", Tid, (void*)NewPoint );
 
-	VExDebugger::Init( HandlerType::VectoredExceptionHandler, true );
+	
+	if ( ThreadsCount == 0 )
+		VExDebugger::Init( HandlerType::VectoredExceptionHandler, true );
 
-	MgrPGE::AddPageExceptions( newPoint, BkpTrigger::Execute, BkpSize::Size_4,
+	auto Result = PGEMgr::AddPageExceptions( 
+
+		NewPoint, BkpTrigger::Execute, BkpSize::Size_4,
+
 		[ ]( PEXCEPTION_RECORD pExceptionRec, PCONTEXT pContext ) -> CBReturn
 		{
-			static int count = 0;
-			printf( "Called callback = 0x%llX, count: %d\n", pContext->Rip, ++count );
+			static std::map<uint32_t, uint32_t> ThreadsCallbackCount = {};
 
-			//if ( count > 26 )
-			//{
+			auto ThreadID = GetCurrentThreadId( );
 
-			//	return CBReturn::StopTrace;
-			//}
+			printf( "[Thread: %d] Called callback = 0x%llX, count: %d\n", ThreadID, pContext->Rip, ++ThreadsCallbackCount[ ThreadID ] );
+
+			if ( ThreadsCount != ThreadsCountChange )
+			{
+				printf( "[Thread: %d] ThreadCount Change\n", ThreadID );
+				ThreadsCountChange = ThreadsCount;
+				Sleep( 400 );
+			}
+
+			if ( ThreadsCallbackCount[ ThreadID ] == 9 || ThreadsCallbackCount[ ThreadID ] == 10 )
+			{
+				printf( "[Thread: %d] Espere\n", ThreadID );
+				getchar( );
+			}
+			if ( ThreadsCallbackCount[ ThreadID ] >= 59 )
+			{
+
+				return CBReturn::StopTrace;
+			}
 			return CBReturn::StepOver;
 			//return CBReturn::StepInto;
 		}
 	);
+	printf( "[Thread: %d] AddPageExceptions Result: %d\n", Tid, Result );
+
+
+	++ThreadsCount;
+
 	//MgrPGE::AddPageExceptions( Point, BkpTrigger::Write, BkpSize::Size_4 );
 
     //MgrPGE::RemovePageExceptions( Point, BkpTrigger::Write );
@@ -711,28 +749,70 @@ int main( )
 	//}
 
 	{ // Execute 2
-		MessageBoxA( 0, "Execute start", "Execute", 0 );
-		auto func = reinterpret_cast<uint32_t( __fastcall* )( int )>( newPoint );
+		//MessageBoxA( 0, "Execute start", ( strTID +  " Execute" ).c_str(), 0 );
+		auto func = reinterpret_cast<uint32_t( __fastcall* )( int )>( NewPoint );
 		auto v = func( 123 );
-		printf( "v: %X\n", v );
-		MessageBoxA( 0, "Execute end", "Execute", 0 );
+		printf( "[Thread: %d] v: %X\n", Tid, v );
+		//MessageBoxA( 0, "Execute end", ( strTID + " Execute" ).c_str( ), 0 );
 	}
 
-	MgrPGE::RemovePageExceptions( newPoint, BkpTrigger::Execute );
+	PGEMgr::RemovePageExceptions( NewPoint, BkpTrigger::Execute );
 
 	//{ // Read
 	//	MessageBoxA( 0, "read start", "read", 0 );
 	//	auto val = *(uint8_t*)( Point +1 );
-	//	printf( "val: %X\n", val );
+	//	printf( "[Thread: %d] val: %X\n", tid, val );
 	//	MessageBoxA( 0, "read end", "read", 0 );
 	//}
 
 	//{ // Write
 	//	MessageBoxA( 0, "Write start", "Write", 0 );
 	//	*(uint8_t*)( Point ) = 123;
-	//	printf( "Write\n" );
+	//	printf( "[Thread: %d] Write\n", tid );
 	//	MessageBoxA( 0, "Write end", "Write", 0 );
 	//}
+
+
+	VirtualFree( AllocMem, 0, MEM_RELEASE );
+
+	return getchar( );
+}
+
+void thread2( )
+{
+	printf( "Thread2 [%d]", GetCurrentThreadId( ) );
+
+	while ( ThreadsCount && ( ThreadsCount == ThreadsCountChange ) )
+		Sleep( 1 );
+
+	printf( "Thread2 to testPGE\n" );
+
+	testPGE( );
+}
+
+void thread3( )
+{
+	printf( "Thread3 [%d]", GetCurrentThreadId( ) );
+
+	while ( ThreadsCount && ( ThreadsCount == ThreadsCountChange ) )
+		Sleep( 1 );
+
+	printf( "Thread3 to testPGE\n" );
+
+	testPGE( );
+}
+
+int main( )
+{
+	// test for multi-thread running in the same location
+
+	printf( "Thread1 [%d]", GetCurrentThreadId() );
+
+	//CreateThread( nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>( thread2 ), nullptr, 0, nullptr );
+	//CreateThread( nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>( thread3 ), nullptr, 0, nullptr );
+	
+	testPGE( );
+
 
 	return getchar( );
 }

@@ -2,7 +2,7 @@
 #include "../Headers/VExInternal.h"
 #include "../Config/Config.h"
 #include "PGEHandler.h"
-#include "MgrPGE.h"
+#include "PGEMgr.h"
 #include <algorithm>
 #include "PGETracer.h"
 
@@ -21,9 +21,9 @@ bool IsThreadInHandling( EXCEPTION_POINTERS* pExceptionInfo )
 
 #endif
 
-	auto ThreadIt = MgrPGE::GetThreadHandlingList( ).find( GetCurrentThreadId( ) );
+	auto ThreadIt = PGEMgr::GetThreadHandlingList( ).find( GetCurrentThreadId( ) );
 
-	if ( ThreadIt == MgrPGE::GetThreadHandlingList( ).end( ) )
+	if ( ThreadIt == PGEMgr::GetThreadHandlingList( ).end( ) )
 		return false;
 
 	auto Result             = true;
@@ -38,18 +38,18 @@ bool IsThreadInHandling( EXCEPTION_POINTERS* pExceptionInfo )
 	
 	if ( IsSingleStep || ( Step.NextExceptionCode == pException->ExceptionCode ) )
 	{
-		auto  PageBase  = Step.AllocBase;
+		auto PageBase       = Step.AllocBase;
 
-		auto PGEit = std::find_if( 
+		auto PGEit          = std::find_if( 
 
-			MgrPGE::GetPageExceptionsList( ).begin( ), MgrPGE::GetPageExceptionsList( ).end( ),
+			PGEMgr::GetPageExceptionsList( ).begin( ), PGEMgr::GetPageExceptionsList( ).end( ),
 
 			[ PageBase ]( PageGuardException& PGE )
 			{
 				return ( PageBase == PGE.AllocBase );
 			} );
 
-		if ( PGEit == MgrPGE::GetPageExceptionsList( ).end( ) )
+		if ( PGEit == PGEMgr::GetPageExceptionsList( ).end( ) )
 			return false;
 
 		if ( IsTracing )
@@ -58,12 +58,12 @@ bool IsThreadInHandling( EXCEPTION_POINTERS* pExceptionInfo )
 
 			if ( !Continue )
 			{
-				MgrPGE::GetThreadHandlingList( ).erase( ThreadIt );
+				PGEMgr::GetThreadHandlingList( ).erase( ThreadIt );
 			}
 		}
 		else
 		{
-			MgrPGE::GetThreadHandlingList( ).erase( ThreadIt );
+			PGEMgr::GetThreadHandlingList( ).erase( ThreadIt );
 		}
 
 		( *PGEit ).RestorePageGuardProtection( );
@@ -79,13 +79,23 @@ bool IsThreadInHandling( EXCEPTION_POINTERS* pExceptionInfo )
 }
 
 
-long __stdcall MgrPGE::CheckPageGuardExceptions( EXCEPTION_POINTERS* pExceptionInfo )
+long __stdcall PGEMgr::CheckPageGuardExceptions( EXCEPTION_POINTERS* pExceptionInfo )
 {
-	EnterCriticalSection( MgrPGE::GetCs( ) );
+
+	printf( "ExceptionAddress 0x%p, PG: %d, SS: %d\n", pExceptionInfo->ExceptionRecord->ExceptionAddress,
+		
+		pExceptionInfo->ExceptionRecord->ExceptionCode == EXCEPTION_GUARD_PAGE,
+		pExceptionInfo->ExceptionRecord->ExceptionCode == EXCEPTION_SINGLE_STEP
+
+		
+		);
+
+	EnterCriticalSection( PGEMgr::GetCs( ) );
 
 	if ( IsThreadInHandling( pExceptionInfo ) )
 	{
-		LeaveCriticalSection( MgrPGE::GetCs( ) );
+		LeaveCriticalSection( PGEMgr::GetCs( ) );
+
 		return EXCEPTION_CONTINUE_EXECUTION;
 	}
 
@@ -102,7 +112,8 @@ long __stdcall MgrPGE::CheckPageGuardExceptions( EXCEPTION_POINTERS* pExceptionI
 		ExceptionRecord->ExceptionCode != EXCEPTION_ACCESS_VIOLATION ) // tests
 	{
 
-		LeaveCriticalSection( MgrPGE::GetCs( ) );
+		LeaveCriticalSection( PGEMgr::GetCs( ) );
+
 		return EXCEPTION_EXECUTE_HANDLER;
 	}
 
@@ -111,7 +122,8 @@ long __stdcall MgrPGE::CheckPageGuardExceptions( EXCEPTION_POINTERS* pExceptionI
 		!ExceptionRecord->ExceptionInformation[ 1 ] )
 	{
 		// it's not mine exception
-		LeaveCriticalSection( MgrPGE::GetCs( ) );
+		LeaveCriticalSection( PGEMgr::GetCs( ) );
+
 		return EXCEPTION_EXECUTE_HANDLER;
 		//return EXCEPTION_CONTINUE_SEARCH;
 	}
@@ -124,16 +136,17 @@ long __stdcall MgrPGE::CheckPageGuardExceptions( EXCEPTION_POINTERS* pExceptionI
 
 	auto const		CurrentAddress					= ( ExecInstruction ) ? ExceptionAddress : ExceptionInfoAddress;
 
-	auto PGEit = std::find_if( MgrPGE::GetPageExceptionsList( ).begin( ), MgrPGE::GetPageExceptionsList( ).end( ),
+	auto PGEit = std::find_if( PGEMgr::GetPageExceptionsList( ).begin( ), PGEMgr::GetPageExceptionsList( ).end( ),
 		[ CurrentAddress ]( PageGuardException& PGE )
 		{
 			return PGE.InRange( CurrentAddress );
 		} );
 
-	if ( PGEit == MgrPGE::GetPageExceptionsList( ).end( ) )
+	if ( PGEit == PGEMgr::GetPageExceptionsList( ).end( ) )
 	{
 		// IT'S NOT MINE PAGE
-		LeaveCriticalSection( MgrPGE::GetCs( ) );
+		LeaveCriticalSection( PGEMgr::GetCs( ) );
+
 		return EXCEPTION_EXECUTE_HANDLER;
 	}
 
@@ -152,6 +165,7 @@ long __stdcall MgrPGE::CheckPageGuardExceptions( EXCEPTION_POINTERS* pExceptionI
 	);
 
 	PageGuardTrigger SetTrigger = {};
+
 	if ( TriggedIt != PGE.PGTriggersList.end( ) )
 	{
 		auto& Trigger = ( *TriggedIt );
@@ -164,10 +178,7 @@ long __stdcall MgrPGE::CheckPageGuardExceptions( EXCEPTION_POINTERS* pExceptionI
 		{
 		case PageGuardTriggerType::Execute:
 		{
-			//SetInReset = false;
-
-			MessageBoxA( 0, "EXECUTE IsMyTriggerPoint", "8", 0 );
-			//Trigger.Callback( ExceptionRecord, ContextRecord );
+			//MessageBoxA( 0, "EXECUTE IsMyTriggerPoint", "8", 0 );
 			break;
 		}
 		case PageGuardTriggerType::Read:
@@ -189,7 +200,7 @@ long __stdcall MgrPGE::CheckPageGuardExceptions( EXCEPTION_POINTERS* pExceptionI
 	}
 
 
-	MgrPGE::GetThreadHandlingList( )[ GetCurrentThreadId( ) ] = {
+	PGEMgr::GetThreadHandlingList( )[ GetCurrentThreadId( ) ] = {
 		.AllocBase    = PGE.AllocBase,
 		.Trigger      = SetTrigger,
 	};
@@ -199,7 +210,8 @@ long __stdcall MgrPGE::CheckPageGuardExceptions( EXCEPTION_POINTERS* pExceptionI
 
 	SET_TRAP_FLAG( ContextRecord );
 
-	LeaveCriticalSection( MgrPGE::GetCs( ) );
+	LeaveCriticalSection( PGEMgr::GetCs( ) );
+
 	return EXCEPTION_CONTINUE_EXECUTION; //Continue to next instruction
 }
 

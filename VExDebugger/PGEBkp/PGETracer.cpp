@@ -1,10 +1,12 @@
 #include "../Headers/Header.h"
 #include "PGETracer.h"
-#include "MgrPGE.h"
+#include "PGEMgr.h"
 #include <algorithm>
 #include "../Tools/ntos.h"
 #include "../Tools/Utils.h"
 #include "../Headers/VExInternal.h"
+#include "../Tools/Logs.h"
+#include "../Tools/WinWrap.h"
 
 #ifdef USE_SWBREAKPOINT
 bool PatchMem( void* dst, void* src, std::size_t size )
@@ -12,19 +14,19 @@ bool PatchMem( void* dst, void* src, std::size_t size )
 	DWORD dwOld = 0;
 
 	SIZE_T sSize = size;
+
 	void* Address = dst;
 
-	auto Status = NtProtectVirtualMemory( (HANDLE)( -1 ), &Address,
-		&sSize, PAGE_EXECUTE_READWRITE, &dwOld );
+	auto Result = WinWrap::ProtectMemory( Address, sSize, PAGE_EXECUTE_READWRITE, &dwOld );
 
-	if ( Status == 0 )
+	if ( Result )
 	{
 		memcpy( dst, src, size );
 
-		NtProtectVirtualMemory( (HANDLE)( -1 ), &Address,
-			&sSize, dwOld, &dwOld );
+		WinWrap::ProtectMemory( Address, sSize, dwOld, &dwOld );
 	}
-	return Status == 0;
+
+	return Result;
 }
 
 template <typename T1, typename T2>
@@ -48,7 +50,10 @@ bool PGETracer::ResolverMultiplesSwBrkpt( EXCEPTION_RECORD* pException )
 
 		const auto CurrentID      = GetCurrentThreadId( );
 
-		auto ThreadIt = std::find_if( MgrPGE::GetThreadHandlingList( ).begin( ), MgrPGE::GetThreadHandlingList( ).end( ),
+		auto ThreadIt             = std::find_if( 
+
+			PGEMgr::GetThreadHandlingList( ).begin( ), PGEMgr::GetThreadHandlingList( ).end( ),
+
 			[ CurrentID, ExceptAddress ]( auto& ThreadIt )
 			{
 				auto& [ThreadId, Step] = ThreadIt;
@@ -57,7 +62,7 @@ bool PGETracer::ResolverMultiplesSwBrkpt( EXCEPTION_RECORD* pException )
 			} 
 		);
 
-		if ( MgrPGE::GetThreadHandlingList( ).end( ) != ThreadIt )
+		if ( PGEMgr::GetThreadHandlingList( ).end( ) != ThreadIt )
 		{
 			return true;
 		}
@@ -85,11 +90,11 @@ bool PGETracer::ManagerCall( EXCEPTION_POINTERS* pExceptionInfo, StepBkp& Step, 
 			PatchMem( pException->ExceptionAddress,
 				Step.OriginalByte );
 
-			Step.NextExceptionCode = 0;
+			Step.NextExceptionCode  = 0;
 
-			Step.AddressToHit = 0;
+			Step.AddressToHit       = 0;
 
-			Step.OriginalByte = 0;
+			Step.OriginalByte       = 0;
 		}
 		else
 			return true;
@@ -112,16 +117,16 @@ bool PGETracer::ManagerCall( EXCEPTION_POINTERS* pExceptionInfo, StepBkp& Step, 
 	{
 		auto FoundPGEit = std::find_if( //check if this point is already included any existing page
 
-			MgrPGE::GetPageExceptionsList( ).begin( ),
+			PGEMgr::GetPageExceptionsList( ).begin( ),
 
-			MgrPGE::GetPageExceptionsList( ).end( ),
+			PGEMgr::GetPageExceptionsList( ).end( ),
 
 			[ CurrentAddress ]( PageGuardException& PGE )
 			{
 				return PGE.InRange( CurrentAddress );
 			} );
 
-		if ( FoundPGEit != MgrPGE::GetPageExceptionsList( ).end( ) )
+		if ( FoundPGEit != PGEMgr::GetPageExceptionsList( ).end( ) )
 		{
 			IsRange        = true;
 
@@ -134,6 +139,15 @@ bool PGETracer::ManagerCall( EXCEPTION_POINTERS* pExceptionInfo, StepBkp& Step, 
 	case CBReturn::StopTrace:
 		{
 			Step.NextExceptionCode = 0;
+
+#ifndef USE_SWBREAKPOINT
+
+			if ( PGE.PGTriggersList.empty( ) ) // if is not empty, it's mean that is the initial page breakpoint
+			{
+				PGEMgr::GetPageExceptionsList( ).erase( PGEit );
+			}
+#endif
+
 			return false;
 		}
 	case CBReturn::StepInto:
@@ -151,6 +165,7 @@ bool PGETracer::ManagerCall( EXCEPTION_POINTERS* pExceptionInfo, StepBkp& Step, 
 		    auto CallSize = Utils::IsCallInstruction( pContext->REG( ip ) );
 			
 #ifdef USE_SWBREAKPOINT
+
 			if ( CallSize == 0 )
 			{
 				if ( PageGuardTriggerType::Execute != Step.Trigger.Type || !PGE.InRange( pContext->REG( ip ) ) )
@@ -186,11 +201,12 @@ bool PGETracer::ManagerCall( EXCEPTION_POINTERS* pExceptionInfo, StepBkp& Step, 
 				MEMORY_BASIC_INFORMATION	mbi		= {};
 
 				SIZE_T						rSize	= 0;
-
-				auto Status = NtQueryVirtualMemory( (HANDLE)-1, reinterpret_cast<void*>( CurrentAddress ), MemoryBasicInformation, &mbi, sizeof( mbi ), &rSize );
-
-				if ( Status != 0 )
+				
+				if ( !WinWrap::QueryMemory( reinterpret_cast<void*>( CurrentAddress ), MemoryBasicInformation, &mbi, sizeof( mbi ), &rSize ) )
 				{
+					log_file( "[-] Failed query status 0x%X, address 0x%p in %s\n", WinWrap::GetErrorStatus( ),
+						reinterpret_cast<void*>( CurrentAddress ),
+						__FUNCTION__ );
 					return false;
 				}
 
@@ -216,18 +232,19 @@ bool PGETracer::ManagerCall( EXCEPTION_POINTERS* pExceptionInfo, StepBkp& Step, 
 
 				if ( PGE.PGTriggersList.empty( ) ) // if is not empty, it's mean that is the initial page breakpoint
 				{
-					MgrPGE::GetPageExceptionsList( ).erase( PGEit );
+					PGEMgr::GetPageExceptionsList( ).erase( PGEit );
 				}
 
-				MgrPGE::GetPageExceptionsList( ).push_back( PageInfo ); // add new page for going on tracing
+				PGEMgr::GetPageExceptionsList( ).push_back( PageInfo ); // add new page for going on tracing
 
 				DWORD dwOld             = 0;
 
-				Status                  = NtProtectVirtualMemory( (HANDLE)-1, &mbi.BaseAddress, &mbi.RegionSize, SetProtection, &dwOld );
-
-				if ( Status != 0 )
+				if ( !WinWrap::ProtectMemory( mbi.BaseAddress, mbi.RegionSize, SetProtection, &dwOld ) )
 				{
-					// log error
+					log_file( "[-] Failed protect status 0x%X, address 0x%p, size 0x%lX in %s\n", WinWrap::GetErrorStatus( ),
+						mbi.BaseAddress, 
+						*reinterpret_cast<uint32_t*>( &mbi.RegionSize ), 
+						__FUNCTION__ );
 					return false;
 				}
 

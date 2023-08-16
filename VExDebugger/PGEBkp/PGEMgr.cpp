@@ -1,6 +1,6 @@
 #include "../Headers/Header.h"
 #include "../Headers/VExInternal.h"
-#include "MgrPGE.h"
+#include "PGEMgr.h"
 #include "../Tools/WinWrap.h"
 #include "../Tools/Logs.h"
 #include "PGE.hpp"
@@ -23,16 +23,17 @@ bool PageGuardException::RestorePageGuardProtection( )
 {
 	DWORD dwOld = 0;
 
-	auto Status = NtProtectVirtualMemory( (HANDLE)( -1 ),
-		reinterpret_cast<void**>( &this->AllocBase ),
-		reinterpret_cast<SIZE_T*>( &this->AllocSize ), this->SetProtection, &dwOld );
+	auto b = WinWrap::ProtectMemory(
+		reinterpret_cast<void*>( this->AllocBase ), this->AllocSize, this->SetProtection, &dwOld );
 
-	auto Result = Status == 0;
-	if ( !Result )
+	if ( !b )
 	{
-		// log error
+		log_file( "[-] Failed protect status 0x%X, address 0x%p, size 0x%lX in %s\n", WinWrap::GetErrorStatus( ),
+			reinterpret_cast<void*>( this->AllocBase ),
+			*reinterpret_cast<uint32_t*>( &this->AllocSize ),
+			__FUNCTION__ );
 	}
-	return Result;
+	return b;
 }
 
 bool PageGuardException::InRange( std::uintptr_t Address )
@@ -42,19 +43,19 @@ bool PageGuardException::InRange( std::uintptr_t Address )
 
 std::vector<PageGuardException> PGExceptionsList{};
 
-std::vector<PageGuardException>& MgrPGE::GetPageExceptionsList( )
+std::vector<PageGuardException>& PGEMgr::GetPageExceptionsList( )
 {
 	return PGExceptionsList;
 }
 
 std::map<std::uint32_t, StepBkp> ThreadsSteps{};
 
-std::map<std::uint32_t, StepBkp>& MgrPGE::GetThreadHandlingList( )
+std::map<std::uint32_t, StepBkp>& PGEMgr::GetThreadHandlingList( )
 {
 	return ThreadsSteps;
 }
 
-CRITICAL_SECTION* MgrPGE::GetCs( )
+CRITICAL_SECTION* PGEMgr::GetCs( )
 {
 	return &PGEHandlerCS;
 }
@@ -101,11 +102,11 @@ size_t ConvertToSize( BkpSize s )
 	return static_cast<size_t>( s );
 }
 
-bool MgrPGE::AddPageExceptions( uintptr_t Address, BkpTrigger TriggerType, BkpSize bSize, TCallback Callback )
+bool PGEMgr::AddPageExceptions( uintptr_t Address, BkpTrigger TriggerType, BkpSize bSize, TCallback Callback )
 {
 	InitCS( );
 
-	EnterCriticalSection( MgrPGE::GetCs( ) );
+	EnterCriticalSection( PGEMgr::GetCs( ) );
 
 	if ( BkpTrigger::Execute == TriggerType )
 		bSize = BkpSize::Size_1;
@@ -122,13 +123,18 @@ bool MgrPGE::AddPageExceptions( uintptr_t Address, BkpTrigger TriggerType, BkpSi
 		} );
 
 	MEMORY_BASIC_INFORMATION	mbi		= {};
-	SIZE_T						rSize	= 0;
-	auto Status = NtQueryVirtualMemory( (HANDLE)-1, reinterpret_cast<void*>( Address ), MemoryBasicInformation, &mbi, sizeof( mbi ), &rSize );
 
-	if ( Status != 0 )
+	SIZE_T						rSize	= 0;
+
+	auto Result  = WinWrap::QueryMemory( reinterpret_cast<void*>( Address ), MemoryBasicInformation, &mbi, sizeof( mbi ), &rSize );
+
+	if ( !Result )
 	{
-		// log error
-		LeaveCriticalSection( MgrPGE::GetCs( ) );
+		log_file( "[-] Failed query status 0x%X, address 0x%p in %s\n", WinWrap::GetErrorStatus( ),
+			reinterpret_cast<void*>( Address ),
+			__FUNCTION__ );
+
+		LeaveCriticalSection( PGEMgr::GetCs( ) );
 		return false;
 	}
 
@@ -145,8 +151,6 @@ bool MgrPGE::AddPageExceptions( uintptr_t Address, BkpTrigger TriggerType, BkpSi
 		{
 			SetProtection		= mbi.Protect | PAGE_GUARD;
 		}
-
-		printf( "BaseAddress: 0x%p, RegionSize: 0x%llX\n", mbi.BaseAddress, mbi.RegionSize );
 
 		PageGuardException PageInfo  = {
 
@@ -191,7 +195,7 @@ bool MgrPGE::AddPageExceptions( uintptr_t Address, BkpTrigger TriggerType, BkpSi
 
 		if ( PGTit != Info.PGTriggersList.end( ) )
 		{
-			LeaveCriticalSection( MgrPGE::GetCs( ) );
+			LeaveCriticalSection( PGEMgr::GetCs( ) );
 			return false;
 		}
 
@@ -218,35 +222,39 @@ bool MgrPGE::AddPageExceptions( uintptr_t Address, BkpTrigger TriggerType, BkpSi
 
 	VExInternal::GetBreakpointList( )[ Address ] = {
 
-		.Method		= BkpMethod::PageExceptions,
+		.Method		            = BkpMethod::PageExceptions,
 
-		.Trigger	= TriggerType,
+		.Trigger	            = TriggerType,
 
-		.Size		= bSize,
+		.Size		            = bSize,
 
-		.Pos		= -1,
+		.Pos		            = -1,
 
-		//.Callback   = Callback,
+		.Callback               = Callback,
 	};
 
 	DWORD dwOld = 0;
-	Status = NtProtectVirtualMemory( (HANDLE)-1, &mbi.BaseAddress, &mbi.RegionSize, SetProtection, &dwOld );
 
-	if ( Status != 0 )
+	Result = WinWrap::ProtectMemory( mbi.BaseAddress, mbi.RegionSize, SetProtection, &dwOld );
+
+	if ( !Result )
 	{
-		// log error
+		log_file( "[-] Failed protect status 0x%X, address 0x%p, size 0x%lX in %s\n", WinWrap::GetErrorStatus( ),
+			mbi.BaseAddress,
+			*reinterpret_cast<uint32_t*>( &mbi.RegionSize ),
+			__FUNCTION__ );
 	}
 
-	LeaveCriticalSection( MgrPGE::GetCs( ) );
+	LeaveCriticalSection( PGEMgr::GetCs( ) );
 
-	return Status == 0;
+	return Result;
 }
 
-bool MgrPGE::RemovePageExceptions( uintptr_t Address, BkpTrigger TriggerType )
+bool PGEMgr::RemovePageExceptions( uintptr_t Address, BkpTrigger TriggerType )
 {
 	InitCS( );
 
-	EnterCriticalSection( MgrPGE::GetCs( ) );
+	EnterCriticalSection( PGEMgr::GetCs( ) );
 
 	auto BkpIt = std::find_if( 
 
@@ -262,7 +270,7 @@ bool MgrPGE::RemovePageExceptions( uintptr_t Address, BkpTrigger TriggerType )
 
 	if ( BkpIt == VExInternal::GetBreakpointList( ).end( ) )
 	{
-		LeaveCriticalSection( MgrPGE::GetCs( ) );
+		LeaveCriticalSection( PGEMgr::GetCs( ) );
 		return false;
 	}
 
@@ -275,7 +283,7 @@ bool MgrPGE::RemovePageExceptions( uintptr_t Address, BkpTrigger TriggerType )
 
 	if ( PGEit == PGExceptionsList.end( ) )
 	{
-		LeaveCriticalSection( MgrPGE::GetCs( ) );
+		LeaveCriticalSection( PGEMgr::GetCs( ) );
 		return false;
 	}
 
@@ -295,7 +303,7 @@ bool MgrPGE::RemovePageExceptions( uintptr_t Address, BkpTrigger TriggerType )
 
 	if ( PGTit == Info.PGTriggersList.end( ) )
 	{
-		LeaveCriticalSection( MgrPGE::GetCs( ) );
+		LeaveCriticalSection( PGEMgr::GetCs( ) );
 		return false;
 	}
 
@@ -305,16 +313,18 @@ bool MgrPGE::RemovePageExceptions( uintptr_t Address, BkpTrigger TriggerType )
 	}
 	else
 	{
-		printf( "Remover todos e essa pagina\n" );
 		DWORD dwOld   = 0;
 
 		auto pAddress = reinterpret_cast<void*>( Info.AllocBase );
 
-		auto Status   = NtProtectVirtualMemory( (HANDLE)-1, &pAddress, &Info.AllocSize, Info.OldProtection, &dwOld );
+		auto Result   = WinWrap::ProtectMemory( pAddress, Info.AllocSize, Info.OldProtection, &dwOld );
 
-		if ( Status == 0 )
+		if ( !Result )
 		{
-			// log error
+			log_file( "[-] Failed protect status 0x%X, address 0x%p, size 0x%lX in %s\n", WinWrap::GetErrorStatus( ),
+				pAddress,
+				*reinterpret_cast<uint32_t*>( &Info.AllocSize ),
+				__FUNCTION__ );
 		}
 
 		Info.PGTriggersList.clear( );
@@ -324,7 +334,7 @@ bool MgrPGE::RemovePageExceptions( uintptr_t Address, BkpTrigger TriggerType )
 
 	VExInternal::GetBreakpointList( ).erase( BkpIt );
 
-	LeaveCriticalSection( MgrPGE::GetCs( ) );
+	LeaveCriticalSection( PGEMgr::GetCs( ) );
 
 	return true;
 }

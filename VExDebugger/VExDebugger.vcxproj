@@ -385,11 +385,11 @@
     <ClInclude Include="Headers\VExInternal.h" />
     <ClInclude Include="HwBkp\HwBkp.h" />
     <ClInclude Include="HwBkp\HwBkpHandler.h" />
-    <ClInclude Include="HwBkp\MgrHwBkp.h" />
+    <ClInclude Include="HwBkp\HwBkpMgr.h" />
     <ClInclude Include="HwBkp\Threads\ManagerThreads.h" />
-    <ClInclude Include="PGEBkp\MgrPGE.h" />
     <ClInclude Include="PGEBkp\PGE.hpp" />
     <ClInclude Include="PGEBkp\PGEHandler.h" />
+    <ClInclude Include="PGEBkp\PGEMgr.h" />
     <ClInclude Include="PGEBkp\PGETracer.h" />
     <ClInclude Include="SpoofDbg\DoHook.h" />
     <ClInclude Include="SpoofDbg\SpoofDbg.h" />
@@ -404,10 +404,10 @@
     <ClCompile Include="Config\Config.cpp" />
     <ClCompile Include="HwBkp\HwBkp.cpp" />
     <ClCompile Include="HwBkp\HwBkpHandler.cpp" />
-    <ClCompile Include="HwBkp\MgrHwBkp.cpp" />
+    <ClCompile Include="HwBkp\HwBkpMgr.cpp" />
     <ClCompile Include="HwBkp\Threads\ManagerThreads.cpp" />
-    <ClCompile Include="PGEBkp\MgrPGE.cpp" />
     <ClCompile Include="PGEBkp\PGEHandler.cpp" />
+    <ClCompile Include="PGEBkp\PGEMgr.cpp" />
     <ClCompile Include="PGEBkp\PGETracer.cpp" />
     <ClCompile Include="SpoofDbg\DoHook.cpp" />
     <ClCompile Include="SpoofDbg\SpoofDbg.cpp" />

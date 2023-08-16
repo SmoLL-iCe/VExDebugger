@@ -1,7 +1,7 @@
 #pragma once
 #include <windows.h>
 
-namespace MgrPGE
+namespace PGEMgr
 {
 	long __stdcall CheckPageGuardExceptions( EXCEPTION_POINTERS* pExceptionInfo );
 }

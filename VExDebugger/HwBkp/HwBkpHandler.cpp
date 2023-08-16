@@ -2,7 +2,7 @@
 #include "../Headers/VExInternal.h"
 #include "HwBkpHandler.h"
 #include "../Config/Config.h"
-#include "MgrHwBkp.h"
+#include "HwBkpMgr.h"
 #include "../Headers/LogsException.hpp"
 #include <algorithm>
 #include "../Tools/Utils.h"
@@ -43,9 +43,9 @@ bool TracerCallBack( std::uintptr_t OriginalAddress, PCONTEXT pContext, PEXCEPTI
 		{
 			if ( IsTF )
 			{
-				const auto itHwBkp = MgrHwBkp::GetHwBrkpList( ).find( OriginalAddress ); 
+				const auto itHwBkp = HwBkpMgr::GetHwBrkpList( ).find( OriginalAddress ); 
 
-				if ( itHwBkp == MgrHwBkp::GetHwBrkpList( ).end( ) )
+				if ( itHwBkp == HwBkpMgr::GetHwBrkpList( ).end( ) )
 					return false;
 
 				const auto HwBkp = itHwBkp->second;// get initial config
@@ -102,9 +102,9 @@ bool TracerCallBack( std::uintptr_t OriginalAddress, PCONTEXT pContext, PEXCEPTI
 	return true;
 };
 
-long __stdcall MgrHwBkp::ExceptionHandler( EXCEPTION_POINTERS* pExceptionInfo )
+long __stdcall HwBkpMgr::ExceptionHandler( EXCEPTION_POINTERS* pExceptionInfo )
 {
-	if ( MgrHwBkp::GetHwBrkpList( ).empty( ) )
+	if ( HwBkpMgr::GetHwBrkpList( ).empty( ) )
 		return EXCEPTION_EXECUTE_HANDLER;
 
 	auto* const		pContext				= pExceptionInfo->ContextRecord;
@@ -162,9 +162,9 @@ long __stdcall MgrHwBkp::ExceptionHandler( EXCEPTION_POINTERS* pExceptionInfo )
 			if ( GET_HW_TRIGGERED_INDEX( pContext ) != BpInfo.Pos )
 				continue; // maybe it's not my trigger
 
-			const auto itHwBkp      = MgrHwBkp::GetHwBrkpList( ).find( Address );
+			const auto itHwBkp      = HwBkpMgr::GetHwBrkpList( ).find( Address );
 
-			if ( itHwBkp == MgrHwBkp::GetHwBrkpList( ).end( ) )
+			if ( itHwBkp == HwBkpMgr::GetHwBrkpList( ).end( ) )
 				continue;
 
 			const auto HwBkp		= itHwBkp->second;
@@ -204,9 +204,9 @@ long __stdcall MgrHwBkp::ExceptionHandler( EXCEPTION_POINTERS* pExceptionInfo )
 	return EXCEPTION_EXECUTE_HANDLER;
 }
 
-long __stdcall MgrHwBkp::ContinueHandler( EXCEPTION_POINTERS* pExceptionInfo )
+long __stdcall HwBkpMgr::ContinueHandler( EXCEPTION_POINTERS* pExceptionInfo )
 {
-	if ( MgrHwBkp::GetHwBrkpList( ).empty( ) )
+	if ( HwBkpMgr::GetHwBrkpList( ).empty( ) )
 		return EXCEPTION_EXECUTE_HANDLER;
 
 #ifndef _WIN64

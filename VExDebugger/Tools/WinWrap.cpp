@@ -107,14 +107,23 @@ uintptr_t NtGetCurrentTEB( )
 #endif
 }
 
-void SetExceptionCode( DWORD code )
+void SetLastErrorValue( DWORD code )
 {
 	auto TEB = NtGetCurrentTEB( );
+
+// LastErrorValue Teb Offsets
 #ifdef _M_IX86
-	* reinterpret_cast<uint32_t*>( TEB + 0x1a4 ) = code;
+	* reinterpret_cast<uint32_t*>( TEB + 0x34 ) = code;
 #elif _M_AMD64
-	* reinterpret_cast<uint32_t*>( TEB + 0x2c0 ) = code;
+	* reinterpret_cast<uint32_t*>( TEB + 0x68 ) = code;
 #endif
+
+// ExceptionCode Teb Offsets
+//#ifdef _M_IX86
+//	* reinterpret_cast<uint32_t*>( TEB + 0x1a4 ) = code;
+//#elif _M_AMD64
+//	* reinterpret_cast<uint32_t*>( TEB + 0x2c0 ) = code;
+//#endif
 }
 
 HMODULE WinWrap::GetModuleBase( const WCHAR* FileName )
@@ -145,11 +154,13 @@ uint8_t* pWow64Transition = nullptr;
 __declspec( naked ) int SysCallAsm( )
 {
 	_asm {
-		mov eax, fs:[0x1a4]
+		mov eax, fs:[0x34]
 		jmp dword ptr[ pWow64Transition ]
 	}
 }
 
+//34h LastErrorValue offset 32 bits
+//1a4h ExceptionCode offset 32 bits
 #endif
 
 FuncInfo iNtAllocateVirtualMemory	= {};
@@ -241,25 +252,26 @@ ACCESS_MASK WinWrap::IsValidHandle( HANDLE Handle )
 
 		DWORD RetLen = 0;
 
-		SetExceptionCode( iNtQueryObject.SyscallId );
+		SetLastErrorValue( iNtQueryObject.SyscallId );
 
 		LastStatus = THE_CALL( iNtQueryObject.UsePtr, Handle, ObjectBasicInformation, &ObjInfo, sizeof( OBJECT_BASIC_INFORMATION ), &RetLen );
 
 		if ( LastStatus == 0 )
 			return ObjInfo.GrantedAccess;
 
-		SetExceptionCode( 0 );
+		SetLastErrorValue( 0 );
 	}
+
 	return 0;
 }
 
 NTSTATUS WinWrap::Continue( PCONTEXT ContextRecord, BOOLEAN TestAlert )
 {
-	SetExceptionCode( iNtContinue.SyscallId );
+	SetLastErrorValue( iNtContinue.SyscallId );
 
 	LastStatus = THE_CALL( iNtContinue.UsePtr, ContextRecord, TestAlert );
 
-	SetExceptionCode( 0 );
+	SetLastErrorValue( 0 );
 
 	return LastStatus;
 }
@@ -277,24 +289,24 @@ HANDLE WinWrap::OpenThread( ACCESS_MASK DesiredAccess, uintptr_t ThreadId )
 		sizeof OBJECT_ATTRIBUTES 
 	};
 
-	SetExceptionCode( iNtOpenThread.SyscallId );
+	SetLastErrorValue( iNtOpenThread.SyscallId );
 
 	LastStatus = THE_CALL( iNtOpenThread.UsePtr, &hThread, DesiredAccess, &ObjAtt, &cPid );
 
-	SetExceptionCode( 0 );
+	SetLastErrorValue( 0 );
 
 	return hThread;
 }
 
 bool WinWrap::GetContextThread( HANDLE hThread, PCONTEXT pContext )
 {
-	SetExceptionCode( iNtGetContextThread.SyscallId );
+	SetLastErrorValue( iNtGetContextThread.SyscallId );
 
 	LastStatus = THE_CALL( iNtGetContextThread.UsePtr, hThread, pContext );
 
-	SetExceptionCode( 0 );
+	SetLastErrorValue( 0 );
 
-	return ( LastStatus == 0 );
+	return NT_SUCCESS( LastStatus );
 }
 
 ULONG WinWrap::GetErrorStatus( )
@@ -304,24 +316,24 @@ ULONG WinWrap::GetErrorStatus( )
 
 bool WinWrap::SetContextThread( HANDLE hThread, PCONTEXT pContext )
 {
-	SetExceptionCode( iNtSetContextThread.SyscallId );
+	SetLastErrorValue( iNtSetContextThread.SyscallId );
 
 	LastStatus = THE_CALL( iNtSetContextThread.UsePtr, hThread, pContext );
 
-	SetExceptionCode( 0 );
+	SetLastErrorValue( 0 );
 
-	return ( LastStatus == 0 );
+	return NT_SUCCESS( LastStatus );
 }
 
 uint32_t WinWrap::SuspendThread( HANDLE hThread )
 {
 	ULONG SuspendCount = -1;
 
-	SetExceptionCode( iNtSuspendThread.SyscallId );
+	SetLastErrorValue( iNtSuspendThread.SyscallId );
 
 	LastStatus = THE_CALL( iNtSuspendThread.UsePtr, hThread, &SuspendCount );
 
-	SetExceptionCode( 0 );
+	SetLastErrorValue( 0 );
 
 	return SuspendCount;
 }
@@ -330,42 +342,42 @@ uint32_t WinWrap::ResumeThread( HANDLE hThread )
 {
 	ULONG SuspendCount = -1;
 
-	SetExceptionCode( iNtResumeThread.SyscallId );
+	SetLastErrorValue( iNtResumeThread.SyscallId );
 
 	LastStatus = THE_CALL( iNtResumeThread.UsePtr, hThread, &SuspendCount );
 
-	SetExceptionCode( 0 );
+	SetLastErrorValue( 0 );
 
 	return SuspendCount;
 }
 
 bool WinWrap::QueryMemory( PVOID BaseAddress, MEMORY_INFORMATION_CLASS MemoryInformationClass, PVOID MemoryInformation, SIZE_T MemoryInformationLength, PSIZE_T ReturnLength )
 {
-	SetExceptionCode( iNtQueryVirtualMemory.SyscallId );
+	SetLastErrorValue( iNtQueryVirtualMemory.SyscallId );
 
 	LastStatus = THE_CALL( iNtQueryVirtualMemory.UsePtr,
 			(HANDLE)-1, BaseAddress, MemoryInformationClass, MemoryInformation,
 			MemoryInformationLength, ReturnLength );
 
-	SetExceptionCode( 0 );
+	SetLastErrorValue( 0 );
 
-	return ( LastStatus == 0 );
+	return NT_SUCCESS( LastStatus );
 }
 
 bool WinWrap::ProtectMemory( PVOID BaseAddress, SIZE_T RegionSize, ULONG NewProtect, PULONG OldProtect )
 {
-	SetExceptionCode( iNtProtectVirtualMemory.SyscallId );
+	SetLastErrorValue( iNtProtectVirtualMemory.SyscallId );
 
 	LastStatus = THE_CALL( iNtProtectVirtualMemory.UsePtr, (HANDLE)-1, &BaseAddress, &RegionSize, NewProtect, OldProtect );
 
-	SetExceptionCode( 0 );
+	SetLastErrorValue( 0 );
 
-	return ( LastStatus == 0 );
+	return NT_SUCCESS( LastStatus );
 }
 
 void* WinWrap::AllocMemory( PVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect )
 {
-	SetExceptionCode( iNtAllocateVirtualMemory.SyscallId );
+	SetLastErrorValue( iNtAllocateVirtualMemory.SyscallId );
 
 	PVOID	BaseAddress = lpAddress;
 
@@ -373,19 +385,19 @@ void* WinWrap::AllocMemory( PVOID lpAddress, SIZE_T dwSize, DWORD flAllocationTy
 
 	LastStatus = THE_CALL( iNtAllocateVirtualMemory.UsePtr, (HANDLE)-1, &BaseAddress, ULONG_PTR(0), &RegionSize, flAllocationType, flProtect );
 
-	SetExceptionCode( 0 );
+	SetLastErrorValue( 0 );
 
 	return BaseAddress;
 }
 
 uint32_t WinWrap::QuerySystemInformation( SYSTEM_INFORMATION_CLASS SystemInformationClass, PVOID SystemInformation, ULONG SystemInformationLength, PULONG ReturnLength )
 {
-	SetExceptionCode( iNtQuerySystemInformation.SyscallId );
+	SetLastErrorValue( iNtQuerySystemInformation.SyscallId );
 
 	LastStatus = THE_CALL( iNtQuerySystemInformation.UsePtr,
 		SystemInformationClass, SystemInformation, SystemInformationLength, ReturnLength );
 
-	SetExceptionCode( 0 );
+	SetLastErrorValue( 0 );
 
 	return LastStatus;
 }

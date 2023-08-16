@@ -1,6 +1,6 @@
 #include "../Headers/Header.h"
 #include "../Headers/VExInternal.h"
-#include "MgrHwBkp.h"
+#include "HwBkpMgr.h"
 #include "HwBkp.h"
 #include "../Tools/WinWrap.h"
 #include "../Tools/Logs.h"
@@ -10,12 +10,12 @@ std::map<uintptr_t, HwBkp*> AddressAdded = { };
 
 std::list<uint32_t> ThreadIdList = { };
 
-std::map<uintptr_t, HwBkp*>& MgrHwBkp::GetHwBrkpList( )
+std::map<uintptr_t, HwBkp*>& HwBkpMgr::GetHwBrkpList( )
 {
 	return AddressAdded;
 }
 
-void MgrHwBkp::UpdateInfo( )
+void HwBkpMgr::UpdateInfo( )
 {
 	MgrThreads::UpdateThreads( );
 
@@ -53,7 +53,7 @@ void MgrHwBkp::UpdateInfo( )
 	}
 }
 
-bool MgrHwBkp::SetBkpAddressInAllThreads( const uintptr_t Address, const BkpTrigger Trigger, const BkpSize Size, TCallback Callback )
+bool HwBkpMgr::SetBkpAddressInAllThreads( const uintptr_t Address, const BkpTrigger Trigger, const BkpSize Size, TCallback Callback )
 {
 	UpdateInfo( );
 
@@ -114,7 +114,7 @@ bool MgrHwBkp::SetBkpAddressInAllThreads( const uintptr_t Address, const BkpTrig
 	return HwBkp::i( )->GetAnySuccess( );
 }
 
-void MgrHwBkp::RemoveBkpAddressInAllThreads( const uintptr_t Address )
+void HwBkpMgr::RemoveBkpAddressInAllThreads( const uintptr_t Address )
 {
 	const auto itAddress			= AddressAdded.find( Address );
 

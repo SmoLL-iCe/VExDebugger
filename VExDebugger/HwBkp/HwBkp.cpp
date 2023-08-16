@@ -3,7 +3,6 @@
 #include "HwBkp.h"
 #include "../Tools/Logs.h"
 #include "../Tools/WinWrap.h"
-#include "MgrHwBkp.h"
 
 HwBkp* g_CurrentHwBreakPt = nullptr;
 

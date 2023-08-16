@@ -3,7 +3,7 @@
 #include <map>
 #include "PGE.hpp"
 
-namespace MgrPGE
+namespace PGEMgr
 { 
 	CRITICAL_SECTION * GetCs();
 	std::vector<PageGuardException>& GetPageExceptionsList();

@@ -4,7 +4,7 @@
 #include "Tools/WinWrap.h"
 #include "Tools/Logs.h"
 #include "Config/Config.h"
-#include "HwBkp/MgrHwBkp.h"
+#include "HwBkp/HwBkpMgr.h"
 #include "HwBkp/HwBkpHandler.h"
 #include "SpoofDbg/SpoofDbg.h"
 #include "Headers/LogsException.hpp"
@@ -74,13 +74,13 @@ long __stdcall InitialExceptionHandler( EXCEPTION_POINTERS* pExceptionInfo )
 	}
 
 
-	return MgrPGE::CheckPageGuardExceptions( pExceptionInfo );
+	return PGEMgr::CheckPageGuardExceptions( pExceptionInfo );
 
 	EnterCriticalSection( &HandlerCS );
 
 	//DisplayContextLogs( pExceptionInfo->ContextRecord, pExceptionInfo->ExceptionRecord ); // tests
 
-	auto Result = MgrHwBkp::ExceptionHandler( pExceptionInfo );
+	auto Result = HwBkpMgr::ExceptionHandler( pExceptionInfo );
 
 	if ( pLvlExcptFilter && EXCEPTION_CONTINUE_EXECUTION == Result )
 	{
@@ -115,7 +115,7 @@ long __stdcall InitialContinueHandler( EXCEPTION_POINTERS* pExceptionInfo )
 	// Using the RtlAddVectoredContinueHandler
 	// Continue handler is a callback that is called after any exception has been continued
 
-	auto Result = MgrHwBkp::ContinueHandler( pExceptionInfo );
+	auto Result = HwBkpMgr::ContinueHandler( pExceptionInfo );
 
 	LeaveCriticalSection( &HandlerCS );
 
@@ -129,7 +129,7 @@ bool VExDebugger::StartMonitorAddress( const uintptr_t Address, const BkpTrigger
 
 	EnterCriticalSection( &HandlerCS );
 
-	auto r = MgrHwBkp::SetBkpAddressInAllThreads( Address, Trigger, Size );
+	auto r = HwBkpMgr::SetBkpAddressInAllThreads( Address, Trigger, Size );
 
 	LeaveCriticalSection( &HandlerCS );
 
@@ -143,7 +143,7 @@ bool VExDebugger::SetTracerAddress( const uintptr_t Address, const BkpTrigger Tr
 
 	EnterCriticalSection( &HandlerCS );
 
-	auto r = MgrHwBkp::SetBkpAddressInAllThreads( Address, Trigger, Size, Callback );
+	auto r = HwBkpMgr::SetBkpAddressInAllThreads( Address, Trigger, Size, Callback );
 
 	LeaveCriticalSection( &HandlerCS );
 
@@ -157,7 +157,7 @@ void VExDebugger::RemoveMonitorAddress( const uintptr_t Address )
 
 	EnterCriticalSection( &HandlerCS );
 
-	MgrHwBkp::RemoveBkpAddressInAllThreads( Address );
+	HwBkpMgr::RemoveBkpAddressInAllThreads( Address );
 
 	LeaveCriticalSection( &HandlerCS );
 }

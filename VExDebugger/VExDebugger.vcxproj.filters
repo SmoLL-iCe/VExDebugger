@@ -64,9 +64,6 @@
     <ClInclude Include="Headers\LogsException.hpp">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="HwBkp\MgrHwBkp.h">
-      <Filter>VExDebugger\HwBkp</Filter>
-    </ClInclude>
     <ClInclude Include="Headers\VExInternal.h">
       <Filter>Headers</Filter>
     </ClInclude>
@@ -82,9 +79,6 @@
     <ClInclude Include="Tools\Utils.h">
       <Filter>VExDebugger\Tools</Filter>
     </ClInclude>
-    <ClInclude Include="PGEBkp\MgrPGE.h">
-      <Filter>VExDebugger\PGEBkp</Filter>
-    </ClInclude>
     <ClInclude Include="PGEBkp\PGEHandler.h">
       <Filter>VExDebugger\PGEBkp</Filter>
     </ClInclude>
@@ -93,6 +87,12 @@
     </ClInclude>
     <ClInclude Include="PGEBkp\PGETracer.h">
       <Filter>VExDebugger\PGEBkp</Filter>
+    </ClInclude>
+    <ClInclude Include="PGEBkp\PGEMgr.h">
+      <Filter>VExDebugger\PGEBkp</Filter>
+    </ClInclude>
+    <ClInclude Include="HwBkp\HwBkpMgr.h">
+      <Filter>VExDebugger\HwBkp</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -117,9 +117,6 @@
     <ClCompile Include="Config\Config.cpp">
       <Filter>VExDebugger\Config</Filter>
     </ClCompile>
-    <ClCompile Include="HwBkp\MgrHwBkp.cpp">
-      <Filter>VExDebugger\HwBkp</Filter>
-    </ClCompile>
     <ClCompile Include="HwBkp\HwBkpHandler.cpp">
       <Filter>VExDebugger\HwBkp</Filter>
     </ClCompile>
@@ -132,14 +129,17 @@
     <ClCompile Include="Tools\Utils.cpp">
       <Filter>VExDebugger\Tools</Filter>
     </ClCompile>
-    <ClCompile Include="PGEBkp\MgrPGE.cpp">
-      <Filter>VExDebugger\PGEBkp</Filter>
-    </ClCompile>
     <ClCompile Include="PGEBkp\PGEHandler.cpp">
       <Filter>VExDebugger\PGEBkp</Filter>
     </ClCompile>
     <ClCompile Include="PGEBkp\PGETracer.cpp">
       <Filter>VExDebugger\PGEBkp</Filter>
+    </ClCompile>
+    <ClCompile Include="PGEBkp\PGEMgr.cpp">
+      <Filter>VExDebugger\PGEBkp</Filter>
+    </ClCompile>
+    <ClCompile Include="HwBkp\HwBkpMgr.cpp">
+      <Filter>VExDebugger\HwBkp</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
