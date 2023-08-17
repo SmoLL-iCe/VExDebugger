@@ -73,6 +73,106 @@ bool PGETracer::ResolverMultiplesSwBrkpt( EXCEPTION_RECORD* pException )
 
 #endif
 
+bool PGETracer::ManagerCall2( EXCEPTION_POINTERS* pExceptionInfo, StepBkp& Step, std::vector<PageGuardException>::iterator PGEit )
+{
+	if ( Step.NextExceptionCode == STILL_ACTIVE )
+	{
+		printf( "Skip ExceptionAddress 0x%p, PG: %d, SS: %d\n", pExceptionInfo->ExceptionRecord->ExceptionAddress,
+			pExceptionInfo->ExceptionRecord->ExceptionCode == EXCEPTION_GUARD_PAGE,
+			pExceptionInfo->ExceptionRecord->ExceptionCode == EXCEPTION_SINGLE_STEP );
+		Step.NextExceptionCode = 0;
+		return true;
+	}
+
+	auto&             PGE              = ( *PGEit );
+
+	PCONTEXT          pContext         = pExceptionInfo->ContextRecord;
+
+	PEXCEPTION_RECORD pException       = pExceptionInfo->ExceptionRecord;
+
+	const auto        CurrentAddress   = pContext->REG( ip );
+
+	const auto        IsRange          = PGE.InRange( CurrentAddress );
+
+	if ( IsRange )
+		return true;
+	
+	auto FoundPGEit = std::find_if( //check if this point is already included any existing page
+
+		PGEMgr::GetPageExceptionsList( ).begin( ),
+
+		PGEMgr::GetPageExceptionsList( ).end( ),
+
+		[ CurrentAddress ]( PageGuardException& PGE )
+		{
+			return PGE.InRange( CurrentAddress );
+		} );
+
+	if ( FoundPGEit != PGEMgr::GetPageExceptionsList( ).end( ) )
+	{
+		Step.AllocBase = ( *FoundPGEit ).AllocBase; // update to existing page base
+
+		return true;
+	}
+
+
+	// go to add this page
+	MEMORY_BASIC_INFORMATION	mbi		= {};
+
+	SIZE_T						rSize	= 0;
+				
+	if ( !WinWrap::QueryMemory( reinterpret_cast<void*>( CurrentAddress ), MemoryBasicInformation, &mbi, sizeof( mbi ), &rSize ) )
+	{
+		log_file( "[-] Failed query status 0x%X, address 0x%p in %s\n", WinWrap::GetErrorStatus( ),
+			reinterpret_cast<void*>( CurrentAddress ),
+			__FUNCTION__ );
+
+		return false;
+	}
+
+	DWORD SetProtection     = mbi.Protect;
+
+	if ( ( mbi.Protect & PAGE_GUARD ) == 0 )
+	{
+		SetProtection		= mbi.Protect | PAGE_GUARD;
+	}
+
+	printf( "BaseAddress: 0x%p, RegionSize: 0x%llX\n", mbi.BaseAddress, mbi.RegionSize );
+
+	PageGuardException PageInfo  = {
+
+		.AllocBase			= reinterpret_cast<uintptr_t>( mbi.BaseAddress ),
+
+		.AllocSize			= mbi.RegionSize,
+
+		.OldProtection		= mbi.Protect,
+
+		.SetProtection		= SetProtection,
+	};
+
+	if ( PGE.PGTriggersList.empty( ) ) // if is not empty, it's mean that is the initial page breakpoint
+	{
+		PGEMgr::GetPageExceptionsList( ).erase( PGEit );
+	}
+
+	PGEMgr::GetPageExceptionsList( ).push_back( PageInfo ); // add new page for going on tracing
+
+	DWORD dwOld             = 0;
+
+	if ( !WinWrap::ProtectMemory( mbi.BaseAddress, mbi.RegionSize, SetProtection, &dwOld ) )
+	{
+		log_file( "[-] Failed protect status 0x%X, address 0x%p, size 0x%lX in %s\n", WinWrap::GetErrorStatus( ),
+			mbi.BaseAddress, 
+			*reinterpret_cast<uint32_t*>( &mbi.RegionSize ), 
+			__FUNCTION__ );
+		return false;
+	}
+
+	Step.AllocBase          = PageInfo.AllocBase; // update new page base	
+
+	return true;
+}
+
 bool PGETracer::ManagerCall( EXCEPTION_POINTERS* pExceptionInfo, StepBkp& Step, std::vector<PageGuardException>::iterator PGEit )
 {
 	auto&             PGE         = ( *PGEit );
@@ -99,12 +199,11 @@ bool PGETracer::ManagerCall( EXCEPTION_POINTERS* pExceptionInfo, StepBkp& Step, 
 		else
 			return true;
 	}
+
 #else
-	if ( Step.NextExceptionCode == STILL_ACTIVE )
-	{
-		Step.NextExceptionCode = 0;
-		return true;
-	}
+
+
+
 #endif
 
 	auto Result                   = Step.Trigger.Callback( pException, pContext );
@@ -112,27 +211,6 @@ bool PGETracer::ManagerCall( EXCEPTION_POINTERS* pExceptionInfo, StepBkp& Step, 
 	auto CurrentAddress           = pContext->REG( ip );
 
 	auto IsRange                  = PGE.InRange( CurrentAddress );
-
-	if ( !IsRange )
-	{
-		auto FoundPGEit = std::find_if( //check if this point is already included any existing page
-
-			PGEMgr::GetPageExceptionsList( ).begin( ),
-
-			PGEMgr::GetPageExceptionsList( ).end( ),
-
-			[ CurrentAddress ]( PageGuardException& PGE )
-			{
-				return PGE.InRange( CurrentAddress );
-			} );
-
-		if ( FoundPGEit != PGEMgr::GetPageExceptionsList( ).end( ) )
-		{
-			IsRange        = true;
-
-			Step.AllocBase = ( *FoundPGEit ).AllocBase; // update to existing page base
-		}
-	}
 
 	switch ( Result )
 	{
@@ -154,8 +232,8 @@ bool PGETracer::ManagerCall( EXCEPTION_POINTERS* pExceptionInfo, StepBkp& Step, 
 		{
 			if ( !IsRange )
 			{
-				Step.NextExceptionCode = EXCEPTION_SINGLE_STEP;
-				SET_TRAP_FLAG( pContext );
+				//Step.NextExceptionCode = EXCEPTION_SINGLE_STEP;
+				//SET_TRAP_FLAG( pContext );
 			}
 
 			break;
@@ -171,7 +249,7 @@ bool PGETracer::ManagerCall( EXCEPTION_POINTERS* pExceptionInfo, StepBkp& Step, 
 				if ( PageGuardTriggerType::Execute != Step.Trigger.Type || !PGE.InRange( pContext->REG( ip ) ) )
 				{
 					Step.NextExceptionCode = EXCEPTION_SINGLE_STEP;
-					SET_TRAP_FLAG( pContext );
+					//SET_TRAP_FLAG( pContext );
 				}
 
 			}
@@ -195,61 +273,6 @@ bool PGETracer::ManagerCall( EXCEPTION_POINTERS* pExceptionInfo, StepBkp& Step, 
 				Step.NextExceptionCode = STILL_ACTIVE;
 			}
 
-			if ( !IsRange )
-			{
-				// go to add this page
-				MEMORY_BASIC_INFORMATION	mbi		= {};
-
-				SIZE_T						rSize	= 0;
-				
-				if ( !WinWrap::QueryMemory( reinterpret_cast<void*>( CurrentAddress ), MemoryBasicInformation, &mbi, sizeof( mbi ), &rSize ) )
-				{
-					log_file( "[-] Failed query status 0x%X, address 0x%p in %s\n", WinWrap::GetErrorStatus( ),
-						reinterpret_cast<void*>( CurrentAddress ),
-						__FUNCTION__ );
-					return false;
-				}
-
-				DWORD SetProtection     = mbi.Protect;
-
-				if ( ( mbi.Protect & PAGE_GUARD ) == 0 )
-				{
-					SetProtection		= mbi.Protect | PAGE_GUARD;
-				}
-
-				printf( "BaseAddress: 0x%p, RegionSize: 0x%llX\n", mbi.BaseAddress, mbi.RegionSize );
-
-				PageGuardException PageInfo  = {
-
-					.AllocBase			= reinterpret_cast<uintptr_t>( mbi.BaseAddress ),
-
-					.AllocSize			= mbi.RegionSize,
-
-					.OldProtection		= mbi.Protect,
-
-					.SetProtection		= SetProtection,
-				};
-
-				if ( PGE.PGTriggersList.empty( ) ) // if is not empty, it's mean that is the initial page breakpoint
-				{
-					PGEMgr::GetPageExceptionsList( ).erase( PGEit );
-				}
-
-				PGEMgr::GetPageExceptionsList( ).push_back( PageInfo ); // add new page for going on tracing
-
-				DWORD dwOld             = 0;
-
-				if ( !WinWrap::ProtectMemory( mbi.BaseAddress, mbi.RegionSize, SetProtection, &dwOld ) )
-				{
-					log_file( "[-] Failed protect status 0x%X, address 0x%p, size 0x%lX in %s\n", WinWrap::GetErrorStatus( ),
-						mbi.BaseAddress, 
-						*reinterpret_cast<uint32_t*>( &mbi.RegionSize ), 
-						__FUNCTION__ );
-					return false;
-				}
-
-				Step.AllocBase          = PageInfo.AllocBase; // update new page base
-			}
 #endif
 			break;
 		}

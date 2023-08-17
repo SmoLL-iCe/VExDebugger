@@ -716,7 +716,7 @@ int testPGE( )
 				Sleep( 400 );
 			}
 
-			if ( ThreadsCallbackCount[ ThreadID ] == 9 || ThreadsCallbackCount[ ThreadID ] == 10 )
+			if ( ThreadsCallbackCount[ ThreadID ] == 9 || ThreadsCallbackCount[ ThreadID ] == 10 || ThreadsCallbackCount[ ThreadID ] == 11 )
 			{
 				printf( "[Thread: %d] Espere\n", ThreadID );
 				getchar( );
