@@ -36,11 +36,11 @@ bool IsThreadInHandling( EXCEPTION_POINTERS* pExceptionInfo )
 
 	auto const IsPG         = pException->ExceptionCode == EXCEPTION_GUARD_PAGE;
 	
-	if ( IsSingleStep )
+	if ( IsTracing )
 	{
-		auto PageBase       = Step.AllocBase;
+		auto PageBase = Step.AllocBase;
 
-		auto PGEit          = std::find_if( 
+		auto PGEit    = std::find_if(
 
 			PGEMgr::GetPageExceptionsList( ).begin( ), PGEMgr::GetPageExceptionsList( ).end( ),
 
@@ -52,66 +52,40 @@ bool IsThreadInHandling( EXCEPTION_POINTERS* pExceptionInfo )
 		if ( PGEit == PGEMgr::GetPageExceptionsList( ).end( ) )
 			return false;
 
-		if ( IsTracing )
-		{
-			auto Continue = PGETracer::ManagerCall2( pExceptionInfo, Step, PGEit );
+		auto Continue = PGETracer::ManagerCall( pExceptionInfo, Step, PGEit );
 
-			//if ( !Continue )
-			//{
-			//	PGEMgr::GetThreadHandlingList( ).erase( ThreadIt );
-			//}
-		}
-		//else
-
-		if ( !IsTracing )
+		if ( !Continue )
 		{
 			PGEMgr::GetThreadHandlingList( ).erase( ThreadIt );
 		}
 
-		( *PGEit ).RestorePageGuardProtection( );
-
-	}else
-
-	if ( IsPG )
-	{
-		if ( IsTracing )
-		{
-			auto PageBase = Step.AllocBase;
-
-			auto PGEit = std::find_if(
-
-				PGEMgr::GetPageExceptionsList( ).begin( ), PGEMgr::GetPageExceptionsList( ).end( ),
-
-				[ PageBase ]( PageGuardException& PGE )
-				{
-					return ( PageBase == PGE.AllocBase );
-				} );
-
-			if ( PGEit == PGEMgr::GetPageExceptionsList( ).end( ) )
-				return false;
-
-			auto Continue = PGETracer::ManagerCall( pExceptionInfo, Step, PGEit );
-
-			if ( !Continue )
-			{
-				PGEMgr::GetThreadHandlingList( ).erase( ThreadIt );
-
-				return true;
-			}
-
-			//SET_TRAP_FLAG( pContext );
-
-			//return true;
-		}
-		//else
-		//{
-		//	//PGEMgr::GetThreadHandlingList( ).erase( ThreadIt );
-		//}
-
-		SET_TRAP_FLAG( pContext );
+		return true;
 	}
 
-	return Result;
+
+	if ( !IsSingleStep )
+		return false;
+	
+	auto PageBase       = Step.AllocBase;
+
+	auto PGEit          = std::find_if( 
+
+		PGEMgr::GetPageExceptionsList( ).begin( ), PGEMgr::GetPageExceptionsList( ).end( ),
+
+		[ PageBase ]( PageGuardException& PGE )
+		{
+			return ( PageBase == PGE.AllocBase );
+		} );
+
+	if ( PGEit == PGEMgr::GetPageExceptionsList( ).end( ) )
+		return false;
+
+
+	PGEMgr::GetThreadHandlingList( ).erase( ThreadIt );
+		
+	( *PGEit ).RestorePageGuardProtection( );
+
+	return true;
 }
 
 long __stdcall PGEMgr::CheckPageGuardExceptions( EXCEPTION_POINTERS* pExceptionInfo )

@@ -19,7 +19,7 @@ void InitCS( )
 	}
 }
 
-bool PageGuardException::RestorePageGuardProtection( )
+bool PageGuardException::RestorePageGuardProtection( ) const
 {
 	DWORD dwOld = 0;
 
@@ -28,15 +28,15 @@ bool PageGuardException::RestorePageGuardProtection( )
 
 	if ( !b )
 	{
-		log_file( "[-] Failed protect status 0x%X, address 0x%p, size 0x%lX in %s\n", WinWrap::GetErrorStatus( ),
+		log_file( "[-] Failed protect status 0x%X, address 0x%p, size 0x%p in %s\n", WinWrap::GetErrorStatus( ),
 			reinterpret_cast<void*>( this->AllocBase ),
-			*reinterpret_cast<uint32_t*>( &this->AllocSize ),
+			reinterpret_cast<void*>( this->AllocSize ),
 			__FUNCTION__ );
 	}
 	return b;
 }
 
-bool PageGuardException::InRange( std::uintptr_t Address )
+bool PageGuardException::InRange( std::uintptr_t Address ) const
 {
 	return ( Address >= this->AllocBase && Address < ( this->AllocBase + this->AllocSize ) );
 }
@@ -108,7 +108,7 @@ bool PGEMgr::AddPageExceptions( uintptr_t Address, BkpTrigger TriggerType, BkpSi
 
 	EnterCriticalSection( PGEMgr::GetCs( ) );
 
-	if ( BkpTrigger::Execute == TriggerType )
+	if ( BkpTrigger::Execute == TriggerType && Callback == nullptr )
 		bSize = BkpSize::Size_1;
 
 	auto Size = ConvertToSize( bSize );

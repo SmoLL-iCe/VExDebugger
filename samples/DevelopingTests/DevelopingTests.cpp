@@ -663,7 +663,6 @@ int testPGE( )
 			*reinterpret_cast<uint64_t*>( &shell_code[ i ] ) = uint64_t( &Sleep );
 
 			i += 7;
-
 		}
 	}
 
@@ -693,13 +692,12 @@ int testPGE( )
 
 	printf( "[Thread: %d] NewPoint: 0x%p\n", Tid, (void*)NewPoint );
 
-	
 	if ( ThreadsCount == 0 )
 		VExDebugger::Init( HandlerType::VectoredExceptionHandler, true );
 
 	auto Result = PGEMgr::AddPageExceptions( 
 
-		NewPoint, BkpTrigger::Execute, BkpSize::Size_4,
+		NewPoint, BkpTrigger::Write, BkpSize::Size_4,
 
 		[ ]( PEXCEPTION_RECORD pExceptionRec, PCONTEXT pContext ) -> CBReturn
 		{
@@ -716,11 +714,15 @@ int testPGE( )
 				Sleep( 400 );
 			}
 
-			if ( ThreadsCallbackCount[ ThreadID ] == 9 || ThreadsCallbackCount[ ThreadID ] == 10 || ThreadsCallbackCount[ ThreadID ] == 11 )
-			{
-				printf( "[Thread: %d] Espere\n", ThreadID );
-				getchar( );
-			}
+			//if ( ThreadsCallbackCount[ ThreadID ] == 9 || 
+			//	ThreadsCallbackCount[ ThreadID ] == 10 || 
+			//	ThreadsCallbackCount[ ThreadID ] == 11 || 
+			//	ThreadsCallbackCount[ ThreadID ] == 50 )
+			//{
+			//	printf( "[Thread: %d] Espere\n", ThreadID );
+			//	getchar( );
+			//}
+
 			if ( ThreadsCallbackCount[ ThreadID ] >= 59 )
 			{
 
@@ -735,9 +737,9 @@ int testPGE( )
 
 	++ThreadsCount;
 
-	//MgrPGE::AddPageExceptions( Point, BkpTrigger::Write, BkpSize::Size_4 );
+	//PGEMgr::AddPageExceptions( NewPoint, BkpTrigger::Write, BkpSize::Size_4 );
 
-    //MgrPGE::RemovePageExceptions( Point, BkpTrigger::Write );
+    //PGEMgr::RemovePageExceptions( NewPoint, BkpTrigger::Write );
 
 
 	//{ // Execute
@@ -748,30 +750,42 @@ int testPGE( )
 	//	MessageBoxA( 0, "Execute end", "Execute", 0 );
 	//}
 
-	{ // Execute 2
-		//MessageBoxA( 0, "Execute start", ( strTID +  " Execute" ).c_str(), 0 );
-		auto func = reinterpret_cast<uint32_t( __fastcall* )( int )>( NewPoint );
-		auto v = func( 123 );
-		printf( "[Thread: %d] v: %X\n", Tid, v );
-		//MessageBoxA( 0, "Execute end", ( strTID + " Execute" ).c_str( ), 0 );
-	}
+	//{ // Execute 2
+	//	//MessageBoxA( 0, "Execute start", ( StrTID +  " Execute" ).c_str(), 0 );
+	//	auto func = reinterpret_cast<uint32_t( __fastcall* )( int )>( NewPoint + 3 );
+	//	auto v = func( 123 );
+	//	printf( "[Thread: %d] v: %X\n", Tid, v );
+	//	//MessageBoxA( 0, "Execute end", ( StrTID + " Execute" ).c_str( ), 0 );
+	//}
 
-	PGEMgr::RemovePageExceptions( NewPoint, BkpTrigger::Execute );
+	//PGEMgr::RemovePageExceptions( NewPoint, BkpTrigger::Execute );
+
+
+	//{ // Execute 2
+	//	MessageBoxA( 0, "Execute start", ( StrTID +  " Execute" ).c_str(), 0 );
+	//	auto func = reinterpret_cast<uint32_t( __fastcall* )( int )>( NewPoint );
+	//	auto v = func( 123 );
+	//	printf( "[Thread: %d] v: %X\n", Tid, v );
+	//	MessageBoxA( 0, "Execute end", ( StrTID + " Execute" ).c_str( ), 0 );
+	//}
 
 	//{ // Read
-	//	MessageBoxA( 0, "read start", "read", 0 );
-	//	auto val = *(uint8_t*)( Point +1 );
-	//	printf( "[Thread: %d] val: %X\n", tid, val );
-	//	MessageBoxA( 0, "read end", "read", 0 );
+	//	MessageBoxA( 0, "Read start", ( StrTID + " Read" ).c_str( ), 0 );
+	//	auto val = *(uint8_t*)( NewPoint +1 );
+	//	printf( "[Thread: %d] val: %X\n", Tid, val );
+	//	MessageBoxA( 0, "Read end", ( StrTID + " Read" ).c_str( ), 0 );
 	//}
 
-	//{ // Write
-	//	MessageBoxA( 0, "Write start", "Write", 0 );
-	//	*(uint8_t*)( Point ) = 123;
-	//	printf( "[Thread: %d] Write\n", tid );
-	//	MessageBoxA( 0, "Write end", "Write", 0 );
-	//}
+	{ // Write
+		MessageBoxA( 0, "Write start", ( StrTID +  " Write" ).c_str(), 0 );
+		*(uint8_t*)( NewPoint ) = 123;
+		printf( "[Thread: %d] Write\n", Tid );
+		MessageBoxA( 0, "Write end", ( StrTID +  " Write" ).c_str(), 0 );
+	}
 
+	printf( "PageExceptionsList count=%lld, ThreadHandlingList count=%lld\n", PGEMgr::GetPageExceptionsList( ).size(), PGEMgr::GetThreadHandlingList( ).size() );
+
+	getchar( );
 
 	VirtualFree( AllocMem, 0, MEM_RELEASE );
 
@@ -783,7 +797,9 @@ void thread2( )
 	printf( "Thread2 [%d]", GetCurrentThreadId( ) );
 
 	while ( ThreadsCount && ( ThreadsCount == ThreadsCountChange ) )
+	{
 		Sleep( 1 );
+	}
 
 	printf( "Thread2 to testPGE\n" );
 
@@ -795,7 +811,9 @@ void thread3( )
 	printf( "Thread3 [%d]", GetCurrentThreadId( ) );
 
 	while ( ThreadsCount && ( ThreadsCount == ThreadsCountChange ) )
-		Sleep( 1 );
+	{
+		//Sleep( 1 );
+	}
 
 	printf( "Thread3 to testPGE\n" );
 

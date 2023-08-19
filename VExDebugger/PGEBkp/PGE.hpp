@@ -3,7 +3,7 @@
 #include <vector>
 #include "../../import/include/VExDebugger.h"
 
-//#define USE_SWBREAKPOINT // it faster than pg
+#define USE_SWBREAKPOINT // it faster than pg
 
 enum PageGuardTriggerType : std::uint32_t
 {
@@ -40,6 +40,6 @@ struct PageGuardException
 	std::uint32_t	SetProtection		= 0;
 	std::vector<PageGuardTrigger> PGTriggersList;
 
-	bool RestorePageGuardProtection( );
-	bool InRange( std::uintptr_t Address );
+	bool RestorePageGuardProtection( ) const;
+	bool InRange( std::uintptr_t Address ) const;
 };
