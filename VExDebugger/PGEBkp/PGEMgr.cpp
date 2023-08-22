@@ -106,6 +106,12 @@ bool PGEMgr::AddPageExceptions( uintptr_t Address, BkpTrigger TriggerType, BkpSi
 {
 	InitCS( );
 
+	//TCallback** fnPointer = Callback.target<TCallback*>( );
+
+	//printf( "Callback=%p, %p\n", fnPointer, (uintptr_t**)( &Callback ) );
+
+	//getchar( );
+
 	EnterCriticalSection( PGEMgr::GetCs( ) );
 
 	if ( BkpTrigger::Execute == TriggerType && Callback == nullptr )

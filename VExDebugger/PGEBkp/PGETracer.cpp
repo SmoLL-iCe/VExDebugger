@@ -128,7 +128,7 @@ bool NewPageManager( uintptr_t CurrentAddress, StepBkp& Step, std::vector<PageGu
 		SetProtection		= mbi.Protect | PAGE_GUARD;
 	}
 
-	printf( "BaseAddress: 0x%p, RegionSize: 0x%llX\n", mbi.BaseAddress, mbi.RegionSize );
+	////printf( "BaseAddress: 0x%p, RegionSize: 0x%llX\n", mbi.BaseAddress, mbi.RegionSize );
 
 	PageGuardException PageInfo  = {
 
@@ -186,10 +186,9 @@ bool PGETracer::ManagerCall( EXCEPTION_POINTERS* pExceptionInfo, StepBkp& Step, 
 
 	auto const        IsRange            = PGE.InRange( CurrentAddress );
 
-
-	printf( "ManagerCall ExceptionAddress 0x%p, PG: %d, SS: %d\n", pExceptionInfo->ExceptionRecord->ExceptionAddress,
-		pExceptionInfo->ExceptionRecord->ExceptionCode == EXCEPTION_GUARD_PAGE,
-		pExceptionInfo->ExceptionRecord->ExceptionCode == EXCEPTION_SINGLE_STEP );
+	//printf( "ManagerCall ExceptionAddress 0x%p, PG: %d, SS: %d\n", pExceptionInfo->ExceptionRecord->ExceptionAddress,
+	//	pExceptionInfo->ExceptionRecord->ExceptionCode == EXCEPTION_GUARD_PAGE,
+	//	pExceptionInfo->ExceptionRecord->ExceptionCode == EXCEPTION_SINGLE_STEP );
 
 #ifdef USE_SWBREAKPOINT
 
@@ -218,9 +217,13 @@ bool PGETracer::ManagerCall( EXCEPTION_POINTERS* pExceptionInfo, StepBkp& Step, 
 
 #else
 
-	if ( IsSingleStep )
+	if ( IsSingleStep && Step.NextExceptionCode != EXCEPTION_SINGLE_STEP )
 	{
 		return ( !IsRange ) ? NewPageManager( CurrentAddress, Step, PGEit ) : PGE.RestorePageGuardProtection( );
+	}else
+	if ( Step.NextExceptionCode == EXCEPTION_SINGLE_STEP )
+	{
+		Step.NextExceptionCode = 0;
 	}
 
 #endif
@@ -245,11 +248,7 @@ bool PGETracer::ManagerCall( EXCEPTION_POINTERS* pExceptionInfo, StepBkp& Step, 
 		}
 	case CBReturn::StepInto:
 		{
-			if ( !IsRange )
-			{
-				//Step.NextExceptionCode = EXCEPTION_SINGLE_STEP;
-				//SET_TRAP_FLAG( pContext );
-			}
+			Step.NextExceptionCode = EXCEPTION_SINGLE_STEP;
 
 			break;
 		}
@@ -263,7 +262,7 @@ bool PGETracer::ManagerCall( EXCEPTION_POINTERS* pExceptionInfo, StepBkp& Step, 
 			{
 				if ( PageGuardTriggerType::Execute != Step.Trigger.Type || !PGE.InRange( pContext->REG( ip ) ) )
 				{
-					Step.NextExceptionCode = EXCEPTION_SINGLE_STEP;
+					//Step.NextExceptionCode = EXCEPTION_SINGLE_STEP;
 					//SET_TRAP_FLAG( pContext );
 				}
 

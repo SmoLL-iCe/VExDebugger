@@ -205,45 +205,47 @@ void SetBreakPointsFunc( )
 {
 	VExDebugger::Init( HandlerType::VectoredExceptionHandler, true );
 
-	VExDebugger::StartMonitorAddress( RelativePointPtr + 0x100, BkpTrigger::Write, BkpSize::Size_2 );
+	//VExDebugger::StartMonitorAddress( RelativePointPtr + 0x100, BkpTrigger::Write, BkpSize::Size_2 );
 
-	VExDebugger::StartMonitorAddress( RelativePointPtr + 0x200, BkpTrigger::ReadWrite, BkpSize::Size_1 );
+	auto Result = PGEMgr::AddPageExceptions( uintptr_t( RelativePointPtr + 0x100 ), BkpTrigger::ReadWrite, BkpSize::Size_4 );
+
+	//VExDebugger::StartMonitorAddress( RelativePointPtr + 0x200, BkpTrigger::ReadWrite, BkpSize::Size_1 );
 
 	//VExDebugger::StartMonitorAddress( RelativePointPtr + 0x300, BkpTrigger::Execute, BkpSize::Size_1 );
 
 	//VExDebugger::StartMonitorAddress( RelativePointPtr, BkpTrigger::ReadWrite, BkpSize::Size_1 );
 
 
-	VExDebugger::SetTracerAddress( 
-		RelativePointPtr + 0x300, 
-		BkpTrigger::Execute, 
-		BkpSize::Size_1,
-	[ ]( PEXCEPTION_RECORD pExceptRec, PCONTEXT pContext ) -> CBReturn 
-		{
-			static int count = 0;
-			auto Module = GetModuleInfo( (uintptr_t)pExceptRec->ExceptionAddress );
+	//VExDebugger::SetTracerAddress( 
+	//	RelativePointPtr + 0x300, 
+	//	BkpTrigger::Execute, 
+	//	BkpSize::Size_1,
+	//[ ]( PEXCEPTION_RECORD pExceptRec, PCONTEXT pContext ) -> CBReturn 
+	//	{
+	//		static int count = 0;
+	//		auto Module = GetModuleInfo( (uintptr_t)pExceptRec->ExceptionAddress );
 
-			if ( !Module.modBaseAddr )
-			{
-				std::cout << count << " ExceptionAddress: 0x" << std::hex << std::uppercase << (uintptr_t)pExceptRec->ExceptionAddress << "\n";
-			}
-			else
-			{
-				auto Offset = (uintptr_t)pExceptRec->ExceptionAddress - reinterpret_cast<uintptr_t>( Module.modBaseAddr );
+	//		if ( !Module.modBaseAddr )
+	//		{
+	//			std::cout << count << " ExceptionAddress: 0x" << std::hex << std::uppercase << (uintptr_t)pExceptRec->ExceptionAddress << "\n";
+	//		}
+	//		else
+	//		{
+	//			auto Offset = (uintptr_t)pExceptRec->ExceptionAddress - reinterpret_cast<uintptr_t>( Module.modBaseAddr );
 
-				std::cout << count << " ExceptionAddress: ";
+	//			std::cout << count << " ExceptionAddress: ";
 
-				std::wcout << Module.szModule;
+	//			std::wcout << Module.szModule;
 
-				std::cout << "+" << std::hex << std::uppercase << Offset << "\n";
-			}
-			++count;
+	//			std::cout << "+" << std::hex << std::uppercase << Offset << "\n";
+	//		}
+	//		++count;
 
 
-			return ( count >= 8 ) ? CBReturn::StopTrace : CBReturn::StepOver;
+	//		return ( count >= 8 ) ? CBReturn::StopTrace : CBReturn::StepOver;
 
-		}
-	);
+	//	}
+	//);
 
 }
 
@@ -480,6 +482,7 @@ void TryDetectHardwareBkp( )
 
 		std::cout << "dividi\n";
 		Sleep( 5000 );
+
 		//RaiseException( EXCEPTION_BREAKPOINT, 123, 0, nullptr );
 
 		//Sleep( 1000 );
@@ -531,7 +534,7 @@ void testDetectHardwareBkp( )
 
 #pragma optimize( "", off )
 
-int oldmain( )
+int xxmain( )
 {
     std::cout << "Hello World!\n";
 
@@ -555,90 +558,93 @@ int oldmain( )
 
 	// TryDetectHardwareBkp( );
 
-	TestExec( );
+	//TestExec( );
 
-	printf( "out\n");
+	//printf( "out\n");
 
 	// TestMod( );
 
-	// TestPage( );
+	//TestPage( );
 
 #ifndef LOAD_MODULE
 
-	//while ( true )
-	//{
-	//	Sleep( 1000 );
 
-	//	VExDebugger::CallBreakpointList( []( TBreakpointList BreakpointList ) -> void {
+	RelativePointPtr[ 0x100 ] = 8;
 
-	//		for ( const auto& [Address, BpInfo] : BreakpointList )
-	//		{
-	//			if ( !Address )
-	//				continue;
+	while ( true )
+	{
+		Sleep( 1000 );
 
-	//			if ( BpInfo.Method != BkpMethod::Hardware )             // only support hardware breakpoint
-	//				continue;
+		VExDebugger::CallBreakpointList( []( TBreakpointList BreakpointList ) -> void {
 
-	//			bool Skip = false;
+			for ( const auto& [Address, BpInfo] : BreakpointList )
+			{
+				if ( !Address )
+					continue;
 
-	//			VExDebugger::CallAssocExceptionList( [&]( TAssocExceptionList AssocExceptionList ) -> void {
+				//if ( BpInfo.Method != BkpMethod::Hardware )             // only support hardware breakpoint
+				//	continue;
 
-	//				auto ItExceptionList = AssocExceptionList.find( Address );
+				bool Skip = false;
 
-	//				if ( ItExceptionList == AssocExceptionList.end( ) )
-	//					return;
-	//			
+				VExDebugger::CallAssocExceptionList( [&]( TAssocExceptionList AssocExceptionList ) -> void {
 
-	//				auto& ExceptionList = ItExceptionList->second;
+					auto ItExceptionList = AssocExceptionList.find( Address );
 
-	//				std::cout << "\nIndex: " << ( BpInfo.Pos + 1 ) << ", Address: 0x" <<
-	//					std::hex << std::uppercase << Address << "\n";
+					if ( ItExceptionList == AssocExceptionList.end( ) )
+						return;
+				
 
+					auto& ExceptionList = ItExceptionList->second;
 
-	//				for ( const auto& [ExceptionAddress, ExceptionInfo] : ExceptionList )
-	//				{
-
-	//					std::cout <<
-	//						"\tCount " << color::start( "Light Blue" ) <<
-	//						std::setfill( ' ' ) << std::setw( 8 ) << std::dec << ExceptionInfo.Details.Count <<
-	//						color::end( );
+					std::cout << "\nIndex: " << ( BpInfo.Pos + 1 ) << ", Address: 0x" <<
+						std::hex << std::uppercase << Address << "\n";
 
 
-	//					if ( BpInfo.Trigger != BkpTrigger::Execute )
-	//					{
-	//						std::cout << color::start( "Light Green" );
+					for ( const auto& [ExceptionAddress, ExceptionInfo] : ExceptionList )
+					{
 
-	//						auto Module = GetModuleInfo( ExceptionAddress );
+						std::cout <<
+							"\tCount " << color::start( "Light Blue" ) <<
+							std::setfill( ' ' ) << std::setw( 8 ) << std::dec << ExceptionInfo.Details.Count <<
+							color::end( );
 
-	//						if ( !Module.modBaseAddr )
-	//						{
-	//							std::cout << " ExceptionAddress: 0x" << std::hex << std::uppercase << ExceptionAddress << "\n";
-	//						}
-	//						else
-	//						{
-	//							auto Offset = ExceptionAddress - reinterpret_cast<uintptr_t>( Module.modBaseAddr );
 
-	//							std::cout << " ExceptionAddress: ";
+						if ( BpInfo.Trigger != BkpTrigger::Execute )
+						{
+							std::cout << color::start( "Light Green" );
 
-	//							std::wcout << Module.szModule;
+							auto Module = GetModuleInfo( ExceptionAddress );
 
-	//							std::cout << "+0x" << std::hex << std::uppercase << Offset << "\n";
-	//						}
+							if ( !Module.modBaseAddr )
+							{
+								std::cout << " ExceptionAddress: 0x" << std::hex << std::uppercase << ExceptionAddress << "\n";
+							}
+							else
+							{
+								auto Offset = ExceptionAddress - reinterpret_cast<uintptr_t>( Module.modBaseAddr );
 
-	//						std::cout << color::end( );
-	//					}
-	//					else
-	//					{
+								std::cout << " ExceptionAddress: ";
 
-	//						std::cout << " ThreadId: " << std::dec << color::start( "Light Green" )
-	//							<< ExceptionAddress << color::end( ) << "\n";
-	//					}
-	//				}
+								std::wcout << Module.szModule;
 
-	//			} );
-	//		}
-	//	} );
-	//}
+								std::cout << "+0x" << std::hex << std::uppercase << Offset << "\n";
+							}
+
+							std::cout << color::end( );
+						}
+						else
+						{
+
+							std::cout << " ThreadId: " << std::dec << color::start( "Light Green" )
+								<< ExceptionAddress << color::end( ) << "\n";
+						}
+					}
+
+				} );
+			}
+		} );
+	}
 #endif
 
 
@@ -697,7 +703,7 @@ int testPGE( )
 
 	auto Result = PGEMgr::AddPageExceptions( 
 
-		NewPoint, BkpTrigger::Write, BkpSize::Size_4,
+		NewPoint, BkpTrigger::Execute, BkpSize::Size_4,
 
 		[ ]( PEXCEPTION_RECORD pExceptionRec, PCONTEXT pContext ) -> CBReturn
 		{
@@ -725,11 +731,11 @@ int testPGE( )
 
 			if ( ThreadsCallbackCount[ ThreadID ] >= 59 )
 			{
-
 				return CBReturn::StopTrace;
 			}
+
 			return CBReturn::StepOver;
-			//return CBReturn::StepInto;
+			return CBReturn::StepInto;
 		}
 	);
 	printf( "[Thread: %d] AddPageExceptions Result: %d\n", Tid, Result );
@@ -750,13 +756,13 @@ int testPGE( )
 	//	MessageBoxA( 0, "Execute end", "Execute", 0 );
 	//}
 
-	//{ // Execute 2
-	//	//MessageBoxA( 0, "Execute start", ( StrTID +  " Execute" ).c_str(), 0 );
-	//	auto func = reinterpret_cast<uint32_t( __fastcall* )( int )>( NewPoint + 3 );
-	//	auto v = func( 123 );
-	//	printf( "[Thread: %d] v: %X\n", Tid, v );
-	//	//MessageBoxA( 0, "Execute end", ( StrTID + " Execute" ).c_str( ), 0 );
-	//}
+	{ // Execute 2
+		//MessageBoxA( 0, "Execute start", ( StrTID +  " Execute" ).c_str(), 0 );
+		auto func = reinterpret_cast<uint32_t( __fastcall* )( int )>( NewPoint );
+		auto v = func( 123 );
+		printf( "[Thread: %d] v: %X\n", Tid, v );
+		//MessageBoxA( 0, "Execute end", ( StrTID + " Execute" ).c_str( ), 0 );
+	}
 
 	//PGEMgr::RemovePageExceptions( NewPoint, BkpTrigger::Execute );
 
@@ -776,12 +782,12 @@ int testPGE( )
 	//	MessageBoxA( 0, "Read end", ( StrTID + " Read" ).c_str( ), 0 );
 	//}
 
-	{ // Write
-		MessageBoxA( 0, "Write start", ( StrTID +  " Write" ).c_str(), 0 );
-		*(uint8_t*)( NewPoint ) = 123;
-		printf( "[Thread: %d] Write\n", Tid );
-		MessageBoxA( 0, "Write end", ( StrTID +  " Write" ).c_str(), 0 );
-	}
+	//{ // Write
+	//	MessageBoxA( 0, "Write start", ( StrTID +  " Write" ).c_str(), 0 );
+	//	*(uint8_t*)( NewPoint ) = 123;
+	//	printf( "[Thread: %d] Write\n", Tid );
+	//	MessageBoxA( 0, "Write end", ( StrTID +  " Write" ).c_str(), 0 );
+	//}
 
 	printf( "PageExceptionsList count=%lld, ThreadHandlingList count=%lld\n", PGEMgr::GetPageExceptionsList( ).size(), PGEMgr::GetThreadHandlingList( ).size() );
 

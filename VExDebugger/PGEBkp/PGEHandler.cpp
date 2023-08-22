@@ -5,6 +5,7 @@
 #include "PGEMgr.h"
 #include <algorithm>
 #include "PGETracer.h"
+#include "../Headers/LogsException.hpp"
 
 bool IsThreadInHandling( EXCEPTION_POINTERS* pExceptionInfo )
 {
@@ -129,7 +130,6 @@ long __stdcall PGEMgr::CheckPageGuardExceptions( EXCEPTION_POINTERS* pExceptionI
 		LeaveCriticalSection( PGEMgr::GetCs( ) );
 
 		return EXCEPTION_EXECUTE_HANDLER;
-		//return EXCEPTION_CONTINUE_SEARCH;
 	}
 
 	auto const		ExceptionInfoTrigger			= ExceptionRecord->ExceptionInformation[ 0 ];
@@ -139,6 +139,8 @@ long __stdcall PGEMgr::CheckPageGuardExceptions( EXCEPTION_POINTERS* pExceptionI
 	auto const		ExecInstruction					= ExceptionInfoTrigger == 8;
 
 	auto const		CurrentAddress					= ( ExecInstruction ) ? ExceptionAddress : ExceptionInfoAddress;
+
+	//printf( "ExceptionInfoTrigger %lld, ExceptionInfoAddress 0x%p\n", ExceptionInfoTrigger, (void*)ExceptionInfoAddress );
 
 	auto PGEit = std::find_if( 
 
@@ -171,7 +173,9 @@ long __stdcall PGEMgr::CheckPageGuardExceptions( EXCEPTION_POINTERS* pExceptionI
 			return (
 				CurrentAddress >= ( PGE.AllocBase + PGT.Offset ) &&
 				CurrentAddress < ( ( PGE.AllocBase + PGT.Offset ) + PGT.Size ) &&
-				ExceptionInfoTrigger == PGT.Type );
+					( ExceptionInfoTrigger == PGT.Type || 
+					( PGT.Type == PageGuardTriggerType::ReadWrite && ExceptionInfoTrigger != PageGuardTriggerType::Execute ) )
+				);
 		} 
 	);
 
@@ -179,33 +183,32 @@ long __stdcall PGEMgr::CheckPageGuardExceptions( EXCEPTION_POINTERS* pExceptionI
 
 	if ( TriggedIt != PGE.PGTriggersList.end( ) )
 	{
-		auto& Trigger = ( *TriggedIt );
+		auto& Trigger             = ( *TriggedIt );
 
-		const auto Address = PGE.AllocBase + Trigger.Offset;
+		const auto Address        = PGE.AllocBase + Trigger.Offset;
 
-		printf( "CurrentAddress=0x%llX, Size: %lld, ExceptionInfoTrigger=%lld\n", CurrentAddress, Trigger.Size, ExceptionInfoTrigger );
-		// change _IP ?
+		const auto IsTracing      = Trigger.Callback != nullptr;
 
-		switch ( Trigger.Type )
-		{
-		case PageGuardTriggerType::Execute:
-		{
-			//MessageBoxA( 0, "EXECUTE IsMyTriggerPoint", "8", 0 );
-			break;
-		}
-		case PageGuardTriggerType::Read:
-		{
-			MessageBoxA( 0, "READ IsMyTriggerPoint", "0", 0 );
-			break;
-		}
-		case PageGuardTriggerType::Write:
-		{
-			MessageBoxA( 0, "WRITE IsMyTriggerPoint", "1", 0 );
-			break;
-		}
-		default:
-			break;
+		//printf( "CurrentAddress=0x%llX, Size: %lld, ExceptionInfoTrigger=%lld, Type=%ld\n", CurrentAddress, Trigger.Size, ExceptionInfoTrigger, Trigger.Type );
 
+		if ( !IsTracing )
+		{
+			auto& ExceptionList       = VExInternal::GetAssocExceptionList( )[ Address ];
+
+			auto& Info                = ExceptionList[
+
+				( Trigger.Type != PageGuardTriggerType::Execute ) ? ExceptionAddress : GetCurrentThreadId( )
+
+			];
+
+			++Info.Details.Count;                                      // inc occurrences
+
+			Info.Details.ThreadId     = GetCurrentThreadId( );         // last thread triggered
+
+			Info.Details.Ctx          = *ContextRecord;                // save context
+
+			if ( Config::i( )->m_Logs )
+				DisplayContextLogs( ContextRecord, ExceptionRecord );  // save in txt
 		}
 
 		SetTrigger = Trigger;
