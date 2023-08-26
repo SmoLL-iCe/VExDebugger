@@ -61,8 +61,8 @@ void Gui::Main( GLWindow* Instance, bool * pVisible )
                     if ( !Address )
                         continue;
 
-                    if ( BpInfo.Method != BkpMethod::Hardware )             // only support hardware breakpoint
-				        continue;
+            //        if ( BpInfo.Method != BkpMethod::Hardware )             // only support hardware breakpoint
+				        //continue;
 
                     auto const HexStr = "0x" + Utils::ValToHexStr( Address );
 
@@ -70,7 +70,7 @@ void Gui::Main( GLWindow* Instance, bool * pVisible )
                     {
 
                         if ( ImGui::Button( ( "Remove " + HexStr ).c_str( ), { 320.f, 25.f } ) )
-                            VExDebugger::RemoveMonitorAddress( Address );
+                            VExDebugger::RemoveAddress( Address, BpInfo.Method, BpInfo.Trigger );
 
                         VExDebugger::CallAssocExceptionList( [&]( TAssocExceptionList AssocExceptionList ) -> void {
 
@@ -79,7 +79,7 @@ void Gui::Main( GLWindow* Instance, bool * pVisible )
                             if ( ItExceptionList == AssocExceptionList.end( ) )
                                 return;
 
-                            auto& ExceptionList     = ItExceptionList->second;
+                            auto& ExceptionList   = ItExceptionList->second;
 
                             std::string SaveLogsStr{};
 
@@ -181,7 +181,7 @@ void Gui::Main( GLWindow* Instance, bool * pVisible )
                     static_cast<uintptr_t>( strtoul( StrAddress.c_str( ), nullptr, 16 ) ) : static_cast<uintptr_t>( strtoull( StrAddress.c_str( ), nullptr, 16 ) );
                 
                 if ( ResultConverted )
-                    VExDebugger::StartMonitorAddress( ResultConverted, static_cast<BkpTrigger>( TypeCurrent + 1 ), static_cast<BkpSize>( SizeCurrent ) );
+                    VExDebugger::StartMonitorAddress( ResultConverted, BkpMethod::Hardware, static_cast<BkpTrigger>( TypeCurrent + 1 ), static_cast<BkpSize>( SizeCurrent ) );
             }
         }
 

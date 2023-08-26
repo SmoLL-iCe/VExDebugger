@@ -107,6 +107,7 @@ void SetBreakPointsFunc( )
 
 	VExDebugger::SetTracerAddress(
 		TraceMe,
+		BkpMethod::Hardware,
 		BkpTrigger::Execute,
 		BkpSize::Size_1,
 		[ ]( PEXCEPTION_RECORD pExceptRec, PCONTEXT pContext ) -> CBReturn
@@ -141,6 +142,7 @@ void SetBreakPointsFunc( )
 
 	VExDebugger::SetTracerAddress(
 		MsgData,
+		BkpMethod::Hardware,
 		BkpTrigger::ReadWrite, // data rw
 		BkpSize::Size_1,
 		[ ]( PEXCEPTION_RECORD pExceptRec, PCONTEXT pContext ) -> CBReturn

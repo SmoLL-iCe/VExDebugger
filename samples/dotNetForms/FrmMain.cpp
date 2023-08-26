@@ -91,7 +91,7 @@ System::Void FrmMain::BtnAdd_Click( System::Object^ sender, System::EventArgs^ e
 		return;
 	}
 
-	VExDebugger::StartMonitorAddress( ResultConverted, BkpTrigger( CbType->SelectedIndex ), BkpSize( CbSize->SelectedIndex ) );
+	VExDebugger::StartMonitorAddress( ResultConverted, BkpMethod::Hardware, BkpTrigger( CbType->SelectedIndex ), BkpSize( CbSize->SelectedIndex ) );
 }
 
 System::Void FrmMain::BtnSave_Click( System::Object^ sender, System::EventArgs^ e )

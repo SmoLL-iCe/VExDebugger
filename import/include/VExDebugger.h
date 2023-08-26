@@ -85,21 +85,27 @@ namespace VExDebugger
 
 	void CallBreakpointList( const std::function<void( TBreakpointList& )>& lpEnumFunc );
 
-	bool StartMonitorAddress( const uintptr_t Address, const BkpTrigger Trigger, const BkpSize Size );
+	bool StartMonitorAddress( const uintptr_t Address, const BkpMethod Method, const BkpTrigger Trigger, const BkpSize Size );
 
-	bool SetTracerAddress( const uintptr_t Address, const BkpTrigger Trigger, const BkpSize Size, TCallback Callback );
+	bool SetTracerAddress( const uintptr_t Address, const BkpMethod Method, const BkpTrigger Trigger, const BkpSize Size, TCallback Callback );
 	
-	void RemoveMonitorAddress( uintptr_t Address );
+	bool RemoveAddress( const uintptr_t Address, const BkpMethod Method, const BkpTrigger Trigger );
 
 	template <typename T>
-	inline bool StartMonitorAddress( T Address, BkpTrigger Trigger, BkpSize Size )
+	inline bool StartMonitorAddress( T Address, BkpMethod Method, BkpTrigger Trigger, BkpSize Size )
 	{
-		return StartMonitorAddress( (uintptr_t)(Address), Trigger, Size );
+		return StartMonitorAddress( (uintptr_t)( Address ), Method, Trigger, Size );
 	}
 
 	template <typename T>
-	inline bool SetTracerAddress( T Address, BkpTrigger Trigger, BkpSize Size, TCallback Callback )
+	inline bool SetTracerAddress( T Address, BkpMethod Method, BkpTrigger Trigger, BkpSize Size, TCallback Callback )
 	{
-		return SetTracerAddress( (uintptr_t)( Address ), Trigger, Size, Callback );
+		return SetTracerAddress( (uintptr_t)( Address ), Method, Trigger, Size, Callback );
+	}
+
+	template <typename T>
+	inline bool RemoveAddress( T Address, BkpMethod Method, BkpTrigger Trigger )
+	{
+		return RemoveAddress( (uintptr_t)( Address ), Method, Trigger );
 	}
 }

@@ -74,9 +74,18 @@ long __stdcall InitialExceptionHandler( EXCEPTION_POINTERS* pExceptionInfo )
 	}
 
 
-	return PGEMgr::CheckPageGuardExceptions( pExceptionInfo );
 
 	EnterCriticalSection( &HandlerCS );
+
+
+	auto PGECatch = PGEMgr::CheckPageGuardExceptions( pExceptionInfo );
+
+	if ( PGECatch == EXCEPTION_CONTINUE_EXECUTION )
+	{
+		LeaveCriticalSection( &HandlerCS );
+		return PGECatch;
+	}
+	
 
 	//DisplayContextLogs( pExceptionInfo->ContextRecord, pExceptionInfo->ExceptionRecord ); // tests
 
@@ -122,7 +131,7 @@ long __stdcall InitialContinueHandler( EXCEPTION_POINTERS* pExceptionInfo )
 	return Result;
 }
 
-bool VExDebugger::StartMonitorAddress( const uintptr_t Address, const BkpTrigger Trigger, const BkpSize Size )
+bool VExDebugger::StartMonitorAddress( const uintptr_t Address, const BkpMethod Method, const BkpTrigger Trigger, const BkpSize Size )
 {
 	if ( !isCsInitialized )
 		return false;
@@ -136,30 +145,37 @@ bool VExDebugger::StartMonitorAddress( const uintptr_t Address, const BkpTrigger
 	return r;
 }
 
-bool VExDebugger::SetTracerAddress( const uintptr_t Address, const BkpTrigger Trigger, const BkpSize Size, TCallback Callback )
+bool VExDebugger::SetTracerAddress( const uintptr_t Address, const BkpMethod Method, const BkpTrigger Trigger, const BkpSize Size, TCallback Callback )
+{
+	if ( !isCsInitialized )
+		return false;
+
+	bool Result = false;
+
+	if ( Method == BkpMethod::Hardware )
+	{
+		EnterCriticalSection( &HandlerCS );
+
+		Result = HwBkpMgr::SetBkpAddressInAllThreads( Address, Trigger, Size, Callback );
+
+		LeaveCriticalSection( &HandlerCS );
+	}
+
+	return Result;
+}
+
+bool VExDebugger::RemoveAddress( const uintptr_t Address, const BkpMethod Method, const BkpTrigger Trigger )
 {
 	if ( !isCsInitialized )
 		return false;
 
 	EnterCriticalSection( &HandlerCS );
 
-	auto r = HwBkpMgr::SetBkpAddressInAllThreads( Address, Trigger, Size, Callback );
-
-	LeaveCriticalSection( &HandlerCS );
-
-	return r;
-}
-
-void VExDebugger::RemoveMonitorAddress( const uintptr_t Address )
-{
-	if ( !isCsInitialized )
-		return;
-
-	EnterCriticalSection( &HandlerCS );
-
 	HwBkpMgr::RemoveBkpAddressInAllThreads( Address );
 
 	LeaveCriticalSection( &HandlerCS );
+
+	return true;
 }
 
 bool VExDebugger::Init( HandlerType Type, bool Logs )
