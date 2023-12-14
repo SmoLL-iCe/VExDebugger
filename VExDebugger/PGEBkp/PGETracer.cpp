@@ -186,10 +186,6 @@ bool PGETracer::ManagerCall( EXCEPTION_POINTERS* pExceptionInfo, StepBkp& Step, 
 
 	auto const        IsRange            = PGE.InRange( CurrentAddress );
 
-	//printf( "ManagerCall ExceptionAddress 0x%p, PG: %d, SS: %d\n", pExceptionInfo->ExceptionRecord->ExceptionAddress,
-	//	pExceptionInfo->ExceptionRecord->ExceptionCode == EXCEPTION_GUARD_PAGE,
-	//	pExceptionInfo->ExceptionRecord->ExceptionCode == EXCEPTION_SINGLE_STEP );
-
 #ifdef USE_SWBREAKPOINT
 
 	if ( EXCEPTION_BREAKPOINT == Step.NextExceptionCode )

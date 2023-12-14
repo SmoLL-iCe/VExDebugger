@@ -63,7 +63,6 @@ bool IsThreadInHandling( EXCEPTION_POINTERS* pExceptionInfo )
 		return true;
 	}
 
-
 	if ( !IsSingleStep )
 		return false;
 	
@@ -91,19 +90,9 @@ bool IsThreadInHandling( EXCEPTION_POINTERS* pExceptionInfo )
 
 long __stdcall PGEMgr::CheckPageGuardExceptions( EXCEPTION_POINTERS* pExceptionInfo )
 {
-	//printf( "ExceptionAddress 0x%p, PG: %d, SS: %d\n", pExceptionInfo->ExceptionRecord->ExceptionAddress,
-	//	pExceptionInfo->ExceptionRecord->ExceptionCode == EXCEPTION_GUARD_PAGE,
-	//	pExceptionInfo->ExceptionRecord->ExceptionCode == EXCEPTION_SINGLE_STEP );
-
-	//EnterCriticalSection( PGEMgr::GetCs( ) );
-
 	if ( IsThreadInHandling( pExceptionInfo ) )
-	{
-		//LeaveCriticalSection( PGEMgr::GetCs( ) );
-
 		return EXCEPTION_CONTINUE_EXECUTION;
-	}
-
+	
 	auto ContextRecord		= pExceptionInfo->ContextRecord;
 
 	auto ExceptionRecord	= pExceptionInfo->ExceptionRecord;
@@ -115,22 +104,14 @@ long __stdcall PGEMgr::CheckPageGuardExceptions( EXCEPTION_POINTERS* pExceptionI
 	if ( 
 		ExceptionRecord->ExceptionCode != EXCEPTION_GUARD_PAGE && //We will catch PAGE_GUARD Violation
 		ExceptionRecord->ExceptionCode != EXCEPTION_ACCESS_VIOLATION ) // tests
-	{
-
-		//LeaveCriticalSection( PGEMgr::GetCs( ) );
-
 		return EXCEPTION_EXECUTE_HANDLER;
-	}
+	
 
 	if ( !ExceptionRecord->ExceptionInformation ||
 		ExceptionRecord->NumberParameters != 2 ||
 		!ExceptionRecord->ExceptionInformation[ 1 ] )
-	{
-		// it's not mine exception
-		//LeaveCriticalSection( PGEMgr::GetCs( ) );
-
 		return EXCEPTION_EXECUTE_HANDLER;
-	}
+	
 
 	auto const ExceptionInfoTrigger  = ExceptionRecord->ExceptionInformation[ 0 ];
 
@@ -153,8 +134,6 @@ long __stdcall PGEMgr::CheckPageGuardExceptions( EXCEPTION_POINTERS* pExceptionI
 	if ( PGEit == PGEMgr::GetPageExceptionsList( ).end( ) )
 	{
 		// IT'S NOT MINE PAGE
-		//LeaveCriticalSection( PGEMgr::GetCs( ) );
-
 		return EXCEPTION_EXECUTE_HANDLER;
 	}
 
@@ -223,7 +202,6 @@ long __stdcall PGEMgr::CheckPageGuardExceptions( EXCEPTION_POINTERS* pExceptionI
 	{
 		PGE.RestorePageGuardProtection( );
 
-		//LeaveCriticalSection( PGEMgr::GetCs( ) );
 		return EXCEPTION_CONTINUE_EXECUTION; //Continue to next instruction
 	}
 
@@ -231,9 +209,6 @@ long __stdcall PGEMgr::CheckPageGuardExceptions( EXCEPTION_POINTERS* pExceptionI
 	// set tf for next instruction call the handler again and restore the page guard again
 
 	SET_TRAP_FLAG( ContextRecord );
-
-	//LeaveCriticalSection( PGEMgr::GetCs( ) );
-
 	return EXCEPTION_CONTINUE_EXECUTION; //Continue to next instruction
 }
 

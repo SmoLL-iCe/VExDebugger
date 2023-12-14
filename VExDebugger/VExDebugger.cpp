@@ -9,6 +9,7 @@
 #include "SpoofDbg/SpoofDbg.h"
 #include "Headers/LogsException.hpp"
 #include "PGEBkp/PGEHandler.h"
+#include "PGEBkp/PGEMgr.h"
 
 bool                    isCsInitialized				= false;
 
@@ -138,11 +139,23 @@ bool VExDebugger::StartMonitorAddress( const uintptr_t Address, const BkpMethod 
 
 	EnterCriticalSection( &HandlerCS );
 
-	auto r = HwBkpMgr::SetBkpAddressInAllThreads( Address, Trigger, Size );
+	bool Result = false;
+
+	switch ( Method )
+	{
+	case BkpMethod::Hardware :
+		Result = HwBkpMgr::SetBkpAddressInAllThreads( Address, Trigger, Size );
+		break;
+	case BkpMethod::PageExceptions :
+		Result = PGEMgr::AddPageExceptions( Address, Trigger, Size );
+		break;
+	default:
+		break;
+	}
 
 	LeaveCriticalSection( &HandlerCS );
 
-	return r;
+	return Result;
 }
 
 bool VExDebugger::SetTracerAddress( const uintptr_t Address, const BkpMethod Method, const BkpTrigger Trigger, const BkpSize Size, TCallback Callback )
@@ -150,17 +163,24 @@ bool VExDebugger::SetTracerAddress( const uintptr_t Address, const BkpMethod Met
 	if ( !isCsInitialized )
 		return false;
 
+	EnterCriticalSection( &HandlerCS );
+
 	bool Result = false;
 
-	if ( Method == BkpMethod::Hardware )
+	switch ( Method )
 	{
-		EnterCriticalSection( &HandlerCS );
-
+	case BkpMethod::Hardware:
 		Result = HwBkpMgr::SetBkpAddressInAllThreads( Address, Trigger, Size, Callback );
-
-		LeaveCriticalSection( &HandlerCS );
+		break;
+	case BkpMethod::PageExceptions:
+		Result = PGEMgr::AddPageExceptions( Address, Trigger, Size, Callback );
+		break;
+	default:
+		break;
 	}
 
+	LeaveCriticalSection( &HandlerCS );
+ 
 	return Result;
 }
 
@@ -171,7 +191,19 @@ bool VExDebugger::RemoveAddress( const uintptr_t Address, const BkpMethod Method
 
 	EnterCriticalSection( &HandlerCS );
 
-	HwBkpMgr::RemoveBkpAddressInAllThreads( Address );
+	bool Result = false;
+
+	switch ( Method )
+	{
+	case BkpMethod::Hardware:
+		Result = HwBkpMgr::RemoveBkpAddressInAllThreads( Address );
+		break;
+	case BkpMethod::PageExceptions:
+		Result = PGEMgr::RemovePageExceptions( Address, Trigger );
+		break;
+	default:
+		break;
+	}
 
 	LeaveCriticalSection( &HandlerCS );
 

@@ -5,17 +5,17 @@
 
 using TVectoredHandler = long( __stdcall* )( EXCEPTION_POINTERS* );
 
-void**				pKiUserExceptionDispatcherInterceptPointer		= nullptr;
+void**              pKiUserExceptionDispatcherInterceptPointer      = nullptr;
 
-extern "C" void*	pKiUserExceptionDispatcherTrampo				= nullptr;
+extern "C" void*    pKiUserExceptionDispatcherTrampo                = nullptr;
 
-void*				oKiUserExceptionDispatcher						= nullptr;
+void*               oKiUserExceptionDispatcher                      = nullptr;
 
-void*				OrigVectoredHandler								= nullptr;
+void*               OrigVectoredHandler                             = nullptr;
 
-uint8_t*			LdrpVectorHandlerList							= nullptr;
+uint8_t*            LdrpVectorHandlerList                           = nullptr;
 
-TVectoredHandler	pMyVectoredHandler								= nullptr;
+TVectoredHandler    pMyVectoredHandler                              = nullptr;
 
 extern "C" 
 #ifdef _WIN64
@@ -26,13 +26,13 @@ uintptr_t __stdcall HandleKiUserExceptionDispatcher( PEXCEPTION_RECORD Exception
 {
 	EXCEPTION_POINTERS Exception = {
 
-		.ExceptionRecord	= ExceptionRecord,
+		.ExceptionRecord    = ExceptionRecord,
 
-		.ContextRecord		= ContextRecord,
+		.ContextRecord      = ContextRecord,
 
 	};
 
-	auto const	Result		= pMyVectoredHandler( &Exception );
+	auto const Result       = pMyVectoredHandler( &Exception );
 	
 	if ( Result == EXCEPTION_CONTINUE_EXECUTION )
 	{
@@ -66,18 +66,19 @@ VOID KiUserExceptionDispatcherAsm( )
 bool IniVEH( )
 {
 	auto* ntdll = GetModuleHandle( L"ntdll.dll" );
+
 	if ( !ntdll )
 	{
 		return false;
 	}
 
-	auto ntdll_base		= reinterpret_cast<uintptr_t>( ntdll );
+	auto NtdllStart     = reinterpret_cast<uintptr_t>( ntdll );
 
-	auto Dos			= reinterpret_cast<PIMAGE_DOS_HEADER>( ntdll );
+	auto Dos            = reinterpret_cast<PIMAGE_DOS_HEADER>( ntdll );
 
-	auto Nt				= reinterpret_cast<PIMAGE_NT_HEADERS>( ntdll_base + Dos->e_lfanew );
+	auto Nt             = reinterpret_cast<PIMAGE_NT_HEADERS>( NtdllStart + Dos->e_lfanew );
 
-	auto ntdll_base_end = ntdll_base + Nt->OptionalHeader.SizeOfImage;
+	auto NtdllEnd       = NtdllStart + Nt->OptionalHeader.SizeOfImage;
 
 	auto* oRtlAddVectoredExceptionHandler = reinterpret_cast<uint8_t*>( GetProcAddress( ntdll, "RtlAddVectoredExceptionHandler" ) );
 
@@ -94,6 +95,7 @@ bool IniVEH( )
 			if ( !pVectoredHandlerList && Point[ x ] == 0x05 && Point[ x + 5 ] == 0x89 ) //add eax, LdrpVectorHandlerList // mov [ebp-04],eax
 			{
 				auto VectoredHandlerList = *reinterpret_cast<uint32_t*>( &Point[ x + 1 ] );
+
 				if ( VectoredHandlerList > Base && VectoredHandlerList < EndBase )
 				{
 					pVectoredHandlerList = reinterpret_cast<uint8_t*>( VectoredHandlerList );
@@ -119,7 +121,7 @@ bool IniVEH( )
 
 		if ( fPoint )
 		{
-			LdrpVectorHandlerList = GeTVectoredHandlerList( fPoint, ntdll_base, ntdll_base_end );
+			LdrpVectorHandlerList = GeTVectoredHandlerList( fPoint, NtdllStart, NtdllEnd );
 
 			if ( LdrpVectorHandlerList )
 				break;
@@ -149,6 +151,7 @@ bool IniVEH( )
 				}
 			}
 		}
+
 		return pVectoredHandlerList;
 	};
 
@@ -161,7 +164,7 @@ bool IniVEH( )
 
 		if ( fPoint )
 		{
-			LdrpVectorHandlerList = GeTVectoredHandlerList( fPoint, ntdll_base, ntdll_base_end );
+			LdrpVectorHandlerList = GeTVectoredHandlerList( fPoint, NtdllStart, NtdllEnd );
 
 			if ( LdrpVectorHandlerList )
 				break;
@@ -204,6 +207,7 @@ bool IniVEH( )
 		{
 			pKiUserExceptionDispatcherTrampo = reinterpret_cast<void*>( pKiUserExceptionDispatcher + i + pKiUserExceptionDispatcher[ i + 1 ] + 2 );
 		}
+
 		if ( !pKiUserExceptionDispatcherInterceptPointer && 
 			pKiUserExceptionDispatcher[ i ] == 0x48 && pKiUserExceptionDispatcher[ i + 1 ] == 0x8B && pKiUserExceptionDispatcher[ i + 2 ] == 0x05 )
 		{
@@ -211,6 +215,7 @@ bool IniVEH( )
 				reinterpret_cast<void**>( &pKiUserExceptionDispatcher[ i ] +
 					*reinterpret_cast<uint32_t*>( &pKiUserExceptionDispatcher[ i + 3 ] ) + 7 );
 		}
+
 	}
 #endif // _WIN64
 
@@ -227,17 +232,17 @@ bool VEH_Internal::HookKiUserExceptionDispatcher( void* MyVectoredHandler )
 {
 	pMyVectoredHandler = reinterpret_cast<decltype( pMyVectoredHandler )>( MyVectoredHandler );
 
-	auto r = IniVEH( );
+	auto Result = IniVEH( );
 
-	if ( r )
+	if ( Result )
 	{
 
 #ifdef _WIN64
-		auto	Address = (void*)pKiUserExceptionDispatcherInterceptPointer;
+		auto    Address = (void*)( pKiUserExceptionDispatcherInterceptPointer );
 
-		SIZE_T	Size	= 0x1000;
+		SIZE_T  Size	= 0x1000;
 
-		ULONG	P		= 0;
+		ULONG   P		= 0;
 
 		auto status = NtProtectVirtualMemory( (HANDLE)(- 1 ), &Address, &Size, PAGE_EXECUTE_READWRITE, &P );
 
@@ -251,12 +256,12 @@ bool VEH_Internal::HookKiUserExceptionDispatcher( void* MyVectoredHandler )
 
 	}
 
-	return r;
+	return Result;
 }
 
 bool VEH_Internal::InterceptVEHHandler( void* VectoredHandler, void*& orig_VectoredHandler )
 {
-	auto r = IniVEH( );
+	auto Result = IniVEH( );
 
 	if ( !LdrpVectorHandlerList )
 		return false;
@@ -271,7 +276,6 @@ bool VEH_Internal::InterceptVEHHandler( void* VectoredHandler, void*& orig_Vecto
 	for ( auto* pLink = ForwardLink; pLink != &VectoredHandlerList->ExecuteHandlerList; pLink = pLink->Flink )
 	{
 		auto* const HandlerEntry	= reinterpret_cast<PVECTORED_HANDLER_ENTRY>( pLink );
-
 
 		void* const DecodedPointer	= ( HandlerEntry->Old.Refs < sizeof( ULONG ) ) ? RtlDecodePointer( HandlerEntry->Old.Handler ) : RtlDecodePointer( HandlerEntry->New.Handler );
 

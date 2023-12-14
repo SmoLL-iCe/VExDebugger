@@ -4,20 +4,6 @@
 #include "../Tools/WinWrap.h"
 #include "../Tools/Logs.h"
 #include "PGE.hpp"
-//
-//bool                    isPGECsInitialized = false;
-//
-//CRITICAL_SECTION        PGEHandlerCS = { };
-//
-//void InitCS( )
-//{
-//	if ( !isPGECsInitialized )
-//	{
-//		InitializeCriticalSection( &PGEHandlerCS );
-//
-//		isPGECsInitialized = true;
-//	}
-//}
 
 bool PageGuardException::RestorePageGuardProtection( ) const
 {
@@ -54,11 +40,6 @@ std::map<std::uint32_t, StepBkp>& PGEMgr::GetThreadHandlingList( )
 {
 	return ThreadsSteps;
 }
-//
-//CRITICAL_SECTION* PGEMgr::GetCs( )
-//{
-//	return &PGEHandlerCS;
-//}
 
 PageGuardTriggerType ConvertToPGTrigger( BkpTrigger Trigger )
 {
@@ -104,16 +85,6 @@ size_t ConvertToSize( BkpSize s )
 
 bool PGEMgr::AddPageExceptions( uintptr_t Address, BkpTrigger TriggerType, BkpSize bSize, TCallback Callback )
 {
-	//InitCS( );
-
-	//TCallback** fnPointer = Callback.target<TCallback*>( );
-
-	//printf( "Callback=%p, %p\n", fnPointer, (uintptr_t**)( &Callback ) );
-
-	//getchar( );
-
-	//EnterCriticalSection( PGEMgr::GetCs( ) );
-
 	if ( BkpTrigger::Execute == TriggerType && Callback == nullptr )
 		bSize = BkpSize::Size_1;
 
@@ -139,8 +110,6 @@ bool PGEMgr::AddPageExceptions( uintptr_t Address, BkpTrigger TriggerType, BkpSi
 		log_file( "[-] Failed query status 0x%X, address 0x%p in %s\n", WinWrap::GetErrorStatus( ),
 			reinterpret_cast<void*>( Address ),
 			__FUNCTION__ );
-
-		//LeaveCriticalSection( PGEMgr::GetCs( ) );
 		return false;
 	}
 
@@ -200,10 +169,8 @@ bool PGEMgr::AddPageExceptions( uintptr_t Address, BkpTrigger TriggerType, BkpSi
 		);
 
 		if ( PGTit != Info.PGTriggersList.end( ) )
-		{
-			//LeaveCriticalSection( PGEMgr::GetCs( ) );
 			return false;
-		}
+		
 
 		SetProtection			= Info.SetProtection;
 
@@ -251,17 +218,11 @@ bool PGEMgr::AddPageExceptions( uintptr_t Address, BkpTrigger TriggerType, BkpSi
 			__FUNCTION__ );
 	}
 
-	//LeaveCriticalSection( PGEMgr::GetCs( ) );
-
 	return Result;
 }
 
 bool PGEMgr::RemovePageExceptions( uintptr_t Address, BkpTrigger TriggerType )
 {
-	//InitCS( );
-
-	//EnterCriticalSection( PGEMgr::GetCs( ) );
-
 	auto BkpIt = std::find_if( 
 
 		VExInternal::GetBreakpointList( ).begin( ), 
@@ -274,11 +235,9 @@ bool PGEMgr::RemovePageExceptions( uintptr_t Address, BkpTrigger TriggerType )
 		}
 	);
 
-	if ( BkpIt == VExInternal::GetBreakpointList( ).end( ) )
-	{
-		//LeaveCriticalSection( PGEMgr::GetCs( ) );
+	if ( BkpIt == VExInternal::GetBreakpointList( ).end( ) )	
 		return false;
-	}
+	
 
 	auto PGEit = std::find_if( PGExceptionsList.begin( ), PGExceptionsList.end( ), 
 
@@ -288,10 +247,7 @@ bool PGEMgr::RemovePageExceptions( uintptr_t Address, BkpTrigger TriggerType )
 		} );
 
 	if ( PGEit == PGExceptionsList.end( ) )
-	{
-		//LeaveCriticalSection( PGEMgr::GetCs( ) );
 		return false;
-	}
 
 	auto& Info              = ( *PGEit );
 
@@ -308,10 +264,7 @@ bool PGEMgr::RemovePageExceptions( uintptr_t Address, BkpTrigger TriggerType )
 	);
 
 	if ( PGTit == Info.PGTriggersList.end( ) )
-	{
-		//LeaveCriticalSection( PGEMgr::GetCs( ) );
 		return false;
-	}
 
 	if ( Info.PGTriggersList.size( ) > 1 )
 	{
@@ -339,8 +292,6 @@ bool PGEMgr::RemovePageExceptions( uintptr_t Address, BkpTrigger TriggerType )
 	}
 
 	VExInternal::GetBreakpointList( ).erase( BkpIt );
-
-	//LeaveCriticalSection( PGEMgr::GetCs( ) );
 
 	return true;
 }

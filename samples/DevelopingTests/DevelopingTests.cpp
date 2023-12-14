@@ -7,7 +7,6 @@
 #include "color.hpp"
 #include "../../VExDebugger/Tools/ntos.h"
 #include "shell.hpp"
-#include "../../VExDebugger/PGEBkp/PGEMgr.h"
 
 #define MM "MD"
 #ifdef _MT
@@ -205,15 +204,15 @@ void SetBreakPointsFunc( )
 {
 	VExDebugger::Init( HandlerType::VectoredExceptionHandler, true );
 
-	//VExDebugger::StartMonitorAddress( RelativePointPtr + 0x100, BkpTrigger::Write, BkpSize::Size_2 );
+	//VExDebugger::StartMonitorAddress( RelativePointPtr + 0x100, BkpMethod::Hardware, BkpTrigger::Write, BkpSize::Size_2 );
 
-	auto Result = PGEMgr::AddPageExceptions( uintptr_t( RelativePointPtr + 0x100 ), BkpTrigger::ReadWrite, BkpSize::Size_4 );
+	//auto Result = PGEMgr::AddPageExceptions( uintptr_t( RelativePointPtr + 0x100 ), BkpMethod::Hardware, BkpTrigger::ReadWrite, BkpSize::Size_4 );
 
-	//VExDebugger::StartMonitorAddress( RelativePointPtr + 0x200, BkpTrigger::ReadWrite, BkpSize::Size_1 );
+	VExDebugger::StartMonitorAddress( RelativePointPtr + 0x200, BkpMethod::Hardware, BkpTrigger::ReadWrite, BkpSize::Size_1 );
 
-	//VExDebugger::StartMonitorAddress( RelativePointPtr + 0x300, BkpTrigger::Execute, BkpSize::Size_1 );
+	//VExDebugger::StartMonitorAddress( RelativePointPtr + 0x300, BkpMethod::Hardware, BkpTrigger::Execute, BkpSize::Size_1 );
 
-	//VExDebugger::StartMonitorAddress( RelativePointPtr, BkpTrigger::ReadWrite, BkpSize::Size_1 );
+	//VExDebugger::StartMonitorAddress( RelativePointPtr, BkpMethod::Hardware, BkpTrigger::ReadWrite, BkpSize::Size_1 );
 
 
 	//VExDebugger::SetTracerAddress( 
@@ -701,9 +700,12 @@ int testPGE( )
 	if ( ThreadsCount == 0 )
 		VExDebugger::Init( HandlerType::VectoredExceptionHandler, true );
 
-	auto Result = PGEMgr::AddPageExceptions( 
+	auto Result = VExDebugger::SetTracerAddress(
 
-		NewPoint, BkpTrigger::Execute, BkpSize::Size_4,
+		NewPoint, 
+		BkpMethod::PageExceptions,
+		BkpTrigger::Execute, 
+		BkpSize::Size_4,
 
 		[ ]( PEXCEPTION_RECORD pExceptionRec, PCONTEXT pContext ) -> CBReturn
 		{

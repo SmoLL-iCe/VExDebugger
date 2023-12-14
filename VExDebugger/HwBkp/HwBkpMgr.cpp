@@ -114,44 +114,50 @@ bool HwBkpMgr::SetBkpAddressInAllThreads( const uintptr_t Address, const BkpTrig
 	return HwBkp::i( )->GetAnySuccess( );
 }
 
-void HwBkpMgr::RemoveBkpAddressInAllThreads( const uintptr_t Address )
+bool HwBkpMgr::RemoveBkpAddressInAllThreads( const uintptr_t Address )
 {
 	const auto itAddress			= AddressAdded.find( Address );
 
 	if ( itAddress == AddressAdded.end( ) )
-		return;
+		return false;
 
 	HwBkp* Hwbkp = itAddress->second;
 
-	if ( Hwbkp )
+	if ( !Hwbkp )
+		return false;
+	
+	Hwbkp->SetRemove( );
+
+	for ( auto ThreadId : ThreadIdList )
 	{
-		Hwbkp->SetRemove( );
+		auto* const hThread = MgrThreads::GetThreadList( )[ ThreadId ];
 
-		for ( auto ThreadId : ThreadIdList )
-		{
-			auto* const hThread = MgrThreads::GetThreadList( )[ ThreadId ];
-
-			Hwbkp->ApplyHwbkpDebugConfig( hThread, ThreadId );
-		}
-
-		auto const ItBreakpointInfo = VExInternal::GetBreakpointList( ).find( Address );
-
-		if ( ItBreakpointInfo != VExInternal::GetBreakpointList( ).end( ) )
-		{
-			VExInternal::GetBreakpointList( ).erase( ItBreakpointInfo );
-
-			auto const ItException = VExInternal::GetAssocExceptionList( ).find( Address );
-
-			if ( ItException != VExInternal::GetAssocExceptionList( ).end( ) )
-			{
-				ItException->second.clear( );
-
-				ItException->second.swap( ItException->second );
-
-				VExInternal::GetAssocExceptionList( ).erase( ItException );
-			}
-		}
-
-		AddressAdded.erase( itAddress );
+		Hwbkp->ApplyHwbkpDebugConfig( hThread, ThreadId );
 	}
+
+	auto const ItBreakpointInfo = VExInternal::GetBreakpointList( ).find( Address );
+
+	bool Removed = false;
+
+	if ( ItBreakpointInfo != VExInternal::GetBreakpointList( ).end( ) )
+	{
+		VExInternal::GetBreakpointList( ).erase( ItBreakpointInfo );
+
+		auto const ItException = VExInternal::GetAssocExceptionList( ).find( Address );
+
+		if ( ItException != VExInternal::GetAssocExceptionList( ).end( ) )
+		{
+			ItException->second.clear( );
+
+			ItException->second.swap( ItException->second );
+
+			VExInternal::GetAssocExceptionList( ).erase( ItException );
+
+			Removed = true;
+		}
+	}
+
+	AddressAdded.erase( itAddress );
+	
+	return Removed;
 }
