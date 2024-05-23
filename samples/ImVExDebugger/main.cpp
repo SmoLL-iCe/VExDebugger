@@ -3,9 +3,10 @@
 #include "Interface/Interface.h"
 #include "Utils/Utils.h"
 
+static
 int Initialize( )
 {
-	VExDebugger::Init( HandlerType::VectoredExceptionHandler, true );
+	VExDebugger::Init( HandlerType::VectoredExceptionHandler, false );
 
     Gui::Init( );
 
@@ -14,6 +15,7 @@ int Initialize( )
 	return getchar( );
 }
 
+static
 BOOL __stdcall DllMain( HMODULE h_module, DWORD  ul_reason_for_call, LPVOID reserved )
 {
 	UNREFERENCED_PARAMETER( h_module ); UNREFERENCED_PARAMETER( reserved );

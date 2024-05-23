@@ -41,6 +41,7 @@ std::map<std::uint32_t, StepBkp>& PGEMgr::GetThreadHandlingList( )
 	return ThreadsSteps;
 }
 
+static
 PageGuardTriggerType ConvertToPGTrigger( BkpTrigger Trigger )
 {
 	switch ( Trigger )
@@ -61,6 +62,7 @@ PageGuardTriggerType ConvertToPGTrigger( BkpTrigger Trigger )
 	return static_cast<PageGuardTriggerType>( -1 );
 }
 
+static
 size_t ConvertToSize( BkpSize s )
 {
 	switch ( s )

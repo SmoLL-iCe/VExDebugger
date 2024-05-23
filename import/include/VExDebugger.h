@@ -59,9 +59,9 @@ struct BkpInfo
 	
 struct CatchedDetails
 {
-	size_t		Count		= 0;
+	uint32_t	Count		= 0;
 
-	size_t		ThreadId	= 0;
+	uint32_t	ThreadId	= 0;
 
 	CONTEXT		Ctx			= {};
 };

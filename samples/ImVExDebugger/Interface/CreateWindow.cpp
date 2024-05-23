@@ -12,6 +12,7 @@
 #pragma comment(lib, "legacy_stdio_definitions")
 #endif
 
+static
 void glfw_error_callback( int error, const char* description )
 {
     UNREFERENCED_PARAMETER( error );
@@ -19,11 +20,11 @@ void glfw_error_callback( int error, const char* description )
     //printf( "glfw error %d: %s\n", error, description );
 }
 
-GLWindow* gWindowInstance = nullptr;
+GLWindow* g_WindowInstance = nullptr;
 
 GLWindow::GLWindow( const char* wCaption, int wWidth, int wHeight ) : m_Width( wWidth ), m_Height( wHeight ), m_Caption( wCaption )
 {
-    gWindowInstance = this;
+    g_WindowInstance = this;
 
     CreateThread( nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>( RunThead ), this, 0, nullptr );
 
@@ -31,31 +32,114 @@ GLWindow::GLWindow( const char* wCaption, int wWidth, int wHeight ) : m_Width( w
         Sleep( 1 );
 }
 
-ImFont* AddFontFromData( const void* data, int const i_size, const char* f_name, float const f_size, const ImWchar* ranges = nullptr )
+static
+ImFont* AddFontFromData( const void* pData, int const nSize, const char* pName, float const fSize, const ImWchar* ranges = nullptr )
 {
-    ImFontConfig font_cfg   = ImFontConfig( );
+    ImFontConfig fontCfg   = ImFontConfig( );
 
-    font_cfg.OversampleH    = font_cfg.OversampleV = 1;
+    fontCfg.OversampleH    = fontCfg.OversampleV = 1;
 
-    font_cfg.PixelSnapH     = true;
+    fontCfg.PixelSnapH     = true;
 
-    ImGuiIO& io             = ImGui::GetIO( );
+    ImGuiIO& io            = ImGui::GetIO( );
 
-    if ( font_cfg.Name[ 0 ] == '\0' )
-        strcpy_s( font_cfg.Name, f_name );
+    if ( fontCfg.Name[ 0 ] == '\0' )
+        strcpy_s( fontCfg.Name, pName );
 
-    if ( font_cfg.SizePixels <= 0.0f )
-        font_cfg.SizePixels = f_size;
+    if ( fontCfg.SizePixels <= 0.0f )
+        fontCfg.SizePixels = fSize;
 
     io.IniFilename          = "";
 
-    return io.Fonts->AddFontFromMemoryCompressedTTF( data, i_size, font_cfg.SizePixels, &font_cfg, ranges );
+    return io.Fonts->AddFontFromMemoryCompressedTTF( pData, nSize, fontCfg.SizePixels, &fontCfg, ranges );
 }
 
 std::vector<ImFont*> GLWindow::GetFonts( )
 {
     return m_Fonts;
 }
+
+static
+ImVec4 Hex2FloatColor( uint32_t hex_color, const float a  = 1.f )
+{
+    auto* const p_byte = reinterpret_cast<uint8_t*>( &hex_color );
+    const auto r = static_cast<float>( static_cast<float>( p_byte[ 2 ] ) / 255.f );
+    const auto g = static_cast<float>( static_cast<float>( p_byte[ 1 ] ) / 255.f );
+    const auto b = static_cast<float>( static_cast<float>( p_byte[ 0 ] ) / 255.f );
+    return { r, g, b, a };
+}
+
+static
+void myStyleColors( )
+{
+	using glColor4f = ImVec4;
+	auto* const style = &ImGui::GetStyle();
+	auto* const colors = style->Colors;
+
+    auto MainColor = Hex2FloatColor( 0x15BC6B );
+    auto MainColor2 = Hex2FloatColor( 0x056F3B );
+    auto MainColor3 = Hex2FloatColor( 0x34C77F );
+    auto BgColor = Hex2FloatColor( 0x151a21 );
+    auto BgColor2 = Hex2FloatColor( 0x2a2d31 );
+
+	style->ChildRounding					= 3.0f;
+	//style->TabRounding						= 3.0f;
+	//style->FrameRounding					= 3.0f;	//border radius buttons
+	//style->WindowTitleAlign.x				= 0.5f; //Centraliza o titulo do menu
+	//style->GrabRounding						= 3.0f;	//radius para as trackbar...
+	//style->WindowRounding					= 3.0f; //Bordas do menu sem radius
+	//style->WindowBorderSize					= 0.0f; //deixa uma fina borda no menu
+
+	colors[ImGuiCol_Text]					= ImVec4(1.00f, 1.00f, 1.00f, 1.00f); //Texto por completo do menu
+	colors[ImGuiCol_TextDisabled]			= ImVec4(0.50f, 0.50f, 0.50f, 1.00f); //Texto desativado por completo do menu
+	colors[ImGuiCol_WindowBg]				= BgColor; //Fundo do menu
+	colors[ImGuiCol_ChildBg]				= BgColor2; //Fundo do child
+	colors[ImGuiCol_PopupBg]				= ImVec4(0.08f, 0.08f, 0.08f, 0.94f); //Fundo da popup/modal ou não
+	colors[ImGuiCol_Border]					= ImVec4(0.44f, 0.49f, 0.56f, 0.00f); //Linha da borda menu/childs/buttons
+	colors[ImGuiCol_BorderShadow]			= ImVec4(0.30f, 0.30f, 0.30f, 0.30f); //ImVec4(0.00f, 0.00f, 0.00f, 0.00f); //-- linha entre tabs 
+	colors[ImGuiCol_FrameBg]				= MainColor2; //Fundo da Slider
+	colors[ImGuiCol_FrameBgHovered]			= MainColor2; //Fundo da Slider mouse sobre
+	colors[ImGuiCol_FrameBgActive]			= ImVec4(0.34f, 0.05f, 0.62f, 0.67f); //Fundo da Slider quando interage
+	colors[ImGuiCol_TitleBg]				= BgColor2; //Fundo do titulo da str_window quando "Não" ativa
+	colors[ImGuiCol_TitleBgActive]			= BgColor2; //Fundo do titulo da str_window quando ativa
+	colors[ImGuiCol_TitleBgCollapsed]		= ImVec4(0.28f, 0.04f, 0.50f, 0.53f); //Fundo do titulo da str_window quando colapsada
+	colors[ImGuiCol_MenuBarBg]				= ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
+	colors[ImGuiCol_ScrollbarBg]			= BgColor;
+	colors[ImGuiCol_ScrollbarGrab]			= ImVec4(0.31f, 0.31f, 0.31f, 1.00f);
+	colors[ImGuiCol_ScrollbarGrabHovered]	= ImVec4(0.41f, 0.41f, 0.41f, 1.00f);
+	colors[ImGuiCol_ScrollbarGrabActive]	= ImVec4(0.51f, 0.51f, 0.51f, 1.00f);
+	colors[ImGuiCol_CheckMark]				= MainColor;
+	colors[ImGuiCol_SliderGrab]				= ImVec4(1.00f, 1.00f, 1.00f, 0.60f); //Fundo do ponteiro do Slider
+	colors[ImGuiCol_SliderGrabActive]		= ImVec4(1.00f, 1.00f, 1.00f, 1.00f); //Fundo do ponteiro do Slider quando ativo
+	colors[ImGuiCol_Button]					= MainColor; //glColor4f(0.556f, 0.266f, 0.678f, 1.0f); //button 
+	colors[ImGuiCol_ButtonHovered]			= glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
+	colors[ImGuiCol_ButtonActive]			= glColor4f(0.2f, 0.2f, 0.3f, 1.0f);
+	colors[ImGuiCol_Header]					= MainColor;
+	colors[ImGuiCol_HeaderHovered]			= MainColor2; //selected
+	colors[ImGuiCol_HeaderActive]			= MainColor3;
+	colors[ImGuiCol_Separator]				= colors[ImGuiCol_Border];//ImVec4(0.61f, 0.61f, 0.61f, 1.00f);//Separador
+	colors[ImGuiCol_SeparatorHovered]		= ImVec4(0.10f, 0.40f, 0.75f, 0.78f); //Separador mouse sobre
+	colors[ImGuiCol_SeparatorActive]		= ImVec4(0.10f, 0.40f, 0.75f, 1.00f); //Separador quando ativo
+	colors[ImGuiCol_ResizeGrip]				= ImVec4(0.26f, 0.59f, 0.98f, 0.25f);
+	colors[ImGuiCol_ResizeGripHovered]		= ImVec4(0.26f, 0.59f, 0.98f, 0.67f);
+	colors[ImGuiCol_ResizeGripActive]		= ImVec4(0.26f, 0.59f, 0.98f, 0.95f);
+	//colors[ImGuiCol_CloseButton]			= ImVec4(0.41f, 0.41f, 0.41f, 0.50f);
+	//colors[ImGuiCol_CloseButtonHovered]	= ImVec4(0.98f, 0.39f, 0.36f, 1.00f);
+	//colors[ImGuiCol_CloseButtonActive]	= ImVec4(0.98f, 0.39f, 0.36f, 1.00f);
+	colors[ImGuiCol_PlotLines]				= ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
+	colors[ImGuiCol_PlotLinesHovered]		= ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
+	colors[ImGuiCol_PlotHistogram]			= ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
+	colors[ImGuiCol_PlotHistogramHovered]	= ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
+	colors[ImGuiCol_TextSelectedBg]			= ImVec4(0.26f, 0.59f, 0.98f, 0.35f);
+	//colors[ImGuiCol_ModalWindowDarkening]	= ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
+	colors[ImGuiCol_DragDropTarget]			= ImVec4(1.00f, 1.00f, 0.00f, 0.90f);
+	colors[ImGuiCol_Tab]					= ImVec4(0.15f, 0.18f, 0.23f, 1.0f);
+	colors[ImGuiCol_TabActive]				= MainColor;
+	colors[ImGuiCol_TabHovered]				= ImVec4(0.00f, 0.00f, 0.00f, 1.0f);
+	//colors[ImGuiCol_TabClick]				= ImVec4(0.35f, 0.35f, 0.35f, 1.0f);
+}
+
+
 
 WNDPROC WndProcOld = nullptr;
 
@@ -123,6 +207,8 @@ void GLWindow::Routine( )
     style->WindowTitleAlign.x    = 0.5f;
 
     style->Alpha                 = 1.0f;
+
+    myStyleColors( );
 
     ImGui_ImplGlfw_InitForOpenGL( m_Window, true );
 
@@ -253,7 +339,7 @@ LRESULT CALLBACK GLWindow::WndProc( const HWND hwnd, const UINT Msg, const WPARA
 
             ClickY = HIWORD( lParam );
 
-            MoveWin = ( static_cast<float>( ClickY ) >= gWindowInstance->m_Top && static_cast<float>( ClickY ) <= ( gWindowInstance->m_Top + TitleBarHeight ) );
+            MoveWin = ( static_cast<float>( ClickY ) >= g_WindowInstance->m_Top && static_cast<float>( ClickY ) <= ( g_WindowInstance->m_Top + TitleBarHeight ) );
 
             if ( MoveWin )
                 SetCapture( hwnd );           
