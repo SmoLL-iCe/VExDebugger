@@ -59,7 +59,7 @@ std::vector<ImFont*> GLWindow::GetFonts( )
     return m_Fonts;
 }
 
-static
+
 ImVec4 Hex2FloatColor( uint32_t hex_color, const float a  = 1.f )
 {
     auto* const p_byte = reinterpret_cast<uint8_t*>( &hex_color );

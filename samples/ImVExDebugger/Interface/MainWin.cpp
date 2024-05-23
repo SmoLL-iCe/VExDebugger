@@ -153,6 +153,9 @@ void testPage( )
 
 #endif // TEST_MODE
 
+extern
+
+ImVec4 Hex2FloatColor( uint32_t hex_color, const float a );
 
 void Gui::Main( GLWindow* Instance, bool * pVisible )
 {
@@ -231,8 +234,10 @@ void Gui::Main( GLWindow* Instance, bool * pVisible )
                         if ( ImGui::BeginTabItem( ( std::to_string( ++nInc ) + " | " + HexStr ).c_str( ) ) )
                         {
 
+                            ImGui::PushStyleColor( ImGuiCol_Button, Hex2FloatColor( 0xe06c75, 1.f ) );
                             if ( ImGui::Button( ( "Remove " + HexStr ).c_str( ), { fFirstTabWidthPercent * 93.f, 25.f } ) )
                                 VExDebugger::RemoveAddress( Address, BpInfo.Method, BpInfo.Trigger );
+                            ImGui::PopStyleColor( );
 
                             VExDebugger::CallAssocExceptionList( [ & ]( TAssocExceptionList AssocExceptionList ) -> void {
 
@@ -391,7 +396,7 @@ void Gui::Main( GLWindow* Instance, bool * pVisible )
         if ( ImGui::BeginChild( "#panelDetails", { fSecondTabWidth, 480.f }, true ) )
         {
             //ImGui::GetCurrentWindow( )->DC.CursorPos.x = 10.f;
-#define DISPLAY_CONTEXT( x ) ImGui::Text( "   - %8s, ", IREG(x) ); ImGui::SameLine( 0.0f, 0.f ); ImGui::TextColored( ImGui::GetStyle( ).Colors[ImGuiCol_Button], HEX_FMT, selectedCatchedDetails.Ctx.REG(x) );
+#define DISPLAY_CONTEXT( x ) ImGui::Text( "   - %4s, ", IREG(x) ); ImGui::SameLine( 0.0f, 0.f ); ImGui::TextColored( ImGui::GetStyle( ).Colors[ImGuiCol_Button], HEX_FMT, selectedCatchedDetails.Ctx.REG(x) );
             const float ySpace = 5.f;
             ImGui::Dummy( { 0.f, ySpace } );
 
