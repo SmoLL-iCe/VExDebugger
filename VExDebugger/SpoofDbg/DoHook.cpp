@@ -41,7 +41,7 @@ std::uint8_t* DoHook::GetNextPage( void* pAddress )
 
         auto diff   = static_cast<std::uintptr_t>( _abs64( uPage - uAddress ) );
 
-        if ( diff < MaxDis && ( ( mbi.State & MEM_FREE ) || ( mbi.State & MEM_COMMIT ) ) )
+        if ( diff < MaxDis && ( ( mbi.State & MEM_FREE ) == MEM_FREE || ( mbi.State & MEM_COMMIT ) == MEM_COMMIT ) )
         {
             if ( mbi.RegionSize >= 0x1000 )
             {
@@ -49,7 +49,7 @@ std::uint8_t* DoHook::GetNextPage( void* pAddress )
 
                 for ( size_t i = 0; i < t; i++ )
                 {
-                     auto Alloc = WinWrap::AllocMemory( reinterpret_cast<void*>( uPage + (0x1000 *i) ), 0x1000, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE );
+                     auto Alloc = WinWrap::AllocMemory( reinterpret_cast<void*>( uPage + ( 0x1000 * i ) ), 0x1000, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE );
 
                      if ( Alloc )
                          return reinterpret_cast<std::uint8_t*>( Alloc );

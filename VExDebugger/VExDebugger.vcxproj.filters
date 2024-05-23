@@ -149,5 +149,8 @@
     <MASM Include="Tools\syscallx64.asm">
       <Filter>VExDebugger\Tools</Filter>
     </MASM>
+    <MASM Include="Tools\protect.asm">
+      <Filter>VExDebugger\Tools</Filter>
+    </MASM>
   </ItemGroup>
 </Project>

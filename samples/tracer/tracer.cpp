@@ -100,7 +100,18 @@ void PrintAddress( std::uintptr_t Address )
 		std::cout << "+" << std::hex << std::uppercase << Offset << "\n";
 	}
 }
+int
+WINAPI
+hkMessageBoxA(
+	_In_opt_ HWND hWnd,
+	_In_opt_ LPCSTR lpText,
+	_In_opt_ LPCSTR lpCaption,
+	_In_ UINT uType ) {
 
+
+}
+
+static int count = 0;
 void SetBreakPointsFunc( )
 {
 	VExDebugger::Init( HandlerType::VectoredExceptionHandler, true );
@@ -113,7 +124,6 @@ void SetBreakPointsFunc( )
 		[ ]( PEXCEPTION_RECORD pExceptRec, PCONTEXT pContext ) -> CBReturn
 		{
 
-			static int count = 0;
 			std::cout << count << " ";
 			PrintAddress( pContext->REG( ip ) );
 
@@ -135,45 +145,45 @@ void SetBreakPointsFunc( )
 			++count;
 
 
-			return ( count >= 8 ) ? CBReturn::StopTrace : CBReturn::StepOver;
+			return CBReturn::StopTrace;
 
 		}
 	);
 
-	VExDebugger::SetTracerAddress(
-		MsgData,
-		BkpMethod::Hardware,
-		BkpTrigger::ReadWrite, // data rw
-		BkpSize::Size_1,
-		[ ]( PEXCEPTION_RECORD pExceptRec, PCONTEXT pContext ) -> CBReturn
-		{
-
-			static int count = 0;
-			std::cout << count << " ";
-			PrintAddress( pContext->REG( ip ) );
-
-			uint8_t* pPoint = reinterpret_cast<uint8_t*>( pContext->REG( ip ) );
-
-			if ( pPoint[ 0 ] == 0xff && pPoint[ 1 ] == 0x15 )
-			{
-				static char str[ ] = "hacked";
-
-#ifndef _WIN64
-				*reinterpret_cast<std::uintptr_t*>( pContext->Esp + 4 ) = reinterpret_cast<uintptr_t>( str );
-#else
-				pContext->Rdx = reinterpret_cast<uintptr_t>( str );
-#endif
-
-			}
-
-
-			++count;
-
-
-			return ( count >= 8 ) ? CBReturn::StopTrace : CBReturn::StepOver;
-
-		}
-	);
+//	VExDebugger::SetTracerAddress(
+//		MsgData,
+//		BkpMethod::Hardware,
+//		BkpTrigger::ReadWrite, // data rw
+//		BkpSize::Size_1,
+//		[ ]( PEXCEPTION_RECORD pExceptRec, PCONTEXT pContext ) -> CBReturn
+//		{
+//
+//			static int count = 0;
+//			std::cout << count << " ";
+//			PrintAddress( pContext->REG( ip ) );
+//
+//			uint8_t* pPoint = reinterpret_cast<uint8_t*>( pContext->REG( ip ) );
+//
+//			if ( pPoint[ 0 ] == 0xff && pPoint[ 1 ] == 0x15 )
+//			{
+//				static char str[ ] = "hacked";
+//
+//#ifndef _WIN64
+//				*reinterpret_cast<std::uintptr_t*>( pContext->Esp + 4 ) = reinterpret_cast<uintptr_t>( str );
+//#else
+//				pContext->Rdx = reinterpret_cast<uintptr_t>( str );
+//#endif
+//
+//			}
+//
+//
+//			++count;
+//
+//
+//			return ( count >= 8 ) ? CBReturn::StopTrace : CBReturn::StepOver;
+//
+//		}
+//	);
 
 }
 
@@ -186,9 +196,13 @@ int main()
 
 	Sleep( 500 );
 
-	TraceMe( );
+	while ( true )
+	{
+		count = 0;
+		TraceMe( );
 
-	TraceMeData( );
+	}
+	//TraceMeData( );
 
 	return getchar( );
 }

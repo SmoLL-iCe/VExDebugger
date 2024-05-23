@@ -181,7 +181,9 @@ void Gui::Main( GLWindow* Instance, bool * pVisible )
                     static_cast<uintptr_t>( strtoul( StrAddress.c_str( ), nullptr, 16 ) ) : static_cast<uintptr_t>( strtoull( StrAddress.c_str( ), nullptr, 16 ) );
                 
                 if ( ResultConverted )
+                {
                     VExDebugger::StartMonitorAddress( ResultConverted, BkpMethod::Hardware, static_cast<BkpTrigger>( TypeCurrent + 1 ), static_cast<BkpSize>( SizeCurrent ) );
+                }
             }
         }
 

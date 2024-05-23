@@ -364,13 +364,23 @@ bool WinWrap::QueryMemory( PVOID BaseAddress, MEMORY_INFORMATION_CLASS MemoryInf
 	return NT_SUCCESS( LastStatus );
 }
 
+#ifdef _WIN64
+EXTERN_C NTSTATUS NtProtectVirtualMemoryAsm( HANDLE, PVOID*, PSIZE_T, ULONG, PULONG );
+#endif // _WIN64
+
 bool WinWrap::ProtectMemory( PVOID BaseAddress, SIZE_T RegionSize, ULONG NewProtect, PULONG OldProtect )
 {
-	SetLastErrorValue( iNtProtectVirtualMemory.SyscallId );
+	//SetLastErrorValue( iNtProtectVirtualMemory.SyscallId );
 
-	LastStatus = THE_CALL( iNtProtectVirtualMemory.UsePtr, (HANDLE)-1, &BaseAddress, &RegionSize, NewProtect, OldProtect );
+	//LastStatus = THE_CALL( iNtProtectVirtualMemory.UsePtr, (HANDLE)-1, &BaseAddress, &RegionSize, NewProtect, OldProtect );
+#ifdef _WIN64
+	LastStatus = NtProtectVirtualMemoryAsm( (HANDLE)-1, &BaseAddress, &RegionSize, NewProtect, OldProtect );
+#else
+	LastStatus = NtProtectVirtualMemory( (HANDLE)-1, &BaseAddress, &RegionSize, NewProtect, OldProtect );
+#endif // _WIN64
 
-	SetLastErrorValue( 0 );
+
+	//SetLastErrorValue( 0 );
 
 	return NT_SUCCESS( LastStatus );
 }
@@ -384,6 +394,10 @@ void* WinWrap::AllocMemory( PVOID lpAddress, SIZE_T dwSize, DWORD flAllocationTy
 	auto	RegionSize	= dwSize;
 
 	LastStatus = THE_CALL( iNtAllocateVirtualMemory.UsePtr, (HANDLE)-1, &BaseAddress, ULONG_PTR(0), &RegionSize, flAllocationType, flProtect );
+
+	if ( LastStatus != 0 ) {
+		BaseAddress = nullptr;
+	}
 
 	SetLastErrorValue( 0 );
 

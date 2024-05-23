@@ -1,6 +1,7 @@
 #include "SpoofDbg.h"
 #include "../Tools/WinWrap.h"
 #include "DoHook.h"
+#include "../Tools/Logs.h"
 
 bool	isHookedNtGetContextThread	= false;
 bool	isHookedNtContinue			= false;
@@ -11,8 +12,18 @@ NTSTATUS NTAPI hkNtGetContextThread( HANDLE ThreadHandle, PCONTEXT ThreadContext
 {
 	auto Status = reinterpret_cast<decltype( hkNtGetContextThread )*>( oNtGetContextThread )( ThreadHandle, ThreadContext );
 
-	if ( Status == 0 )
+	if ( Status == 0 && ThreadContext )
 	{
+		ThreadContext->Dr0 = 0;
+		ThreadContext->Dr1 = 0;
+		ThreadContext->Dr2 = 0;
+		ThreadContext->Dr3 = 0;
+		ThreadContext->Dr6 = 0;
+		ThreadContext->Dr7 = 0;
+#ifdef _WIN64
+		ThreadContext->DebugControl = 0;
+#endif // _WIN64
+
 	}
 		
 	return 0;
@@ -45,6 +56,7 @@ bool SpoofDbg::HookNtGetContextThread( )
 		5
 #endif
 		);
+
 	return isHookedNtGetContextThread;
 }
 
@@ -66,5 +78,6 @@ bool SpoofDbg::HookNtContinue( )
 		5
 #endif
 		);
+
 	return isHookedNtContinue;
 }

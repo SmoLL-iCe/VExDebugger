@@ -533,7 +533,7 @@ void testDetectHardwareBkp( )
 
 #pragma optimize( "", off )
 
-int xxmain( )
+int main( )
 {
     std::cout << "Hello World!\n";
 
@@ -568,7 +568,7 @@ int xxmain( )
 #ifndef LOAD_MODULE
 
 
-	RelativePointPtr[ 0x100 ] = 8;
+	RelativePointPtr[ 0x200 ] = 8;
 
 	while ( true )
 	{
@@ -791,7 +791,7 @@ int testPGE( )
 	//	MessageBoxA( 0, "Write end", ( StrTID +  " Write" ).c_str(), 0 );
 	//}
 
-	printf( "PageExceptionsList count=%lld, ThreadHandlingList count=%lld\n", PGEMgr::GetPageExceptionsList( ).size(), PGEMgr::GetThreadHandlingList( ).size() );
+	//printf( "PageExceptionsList count=%lld, ThreadHandlingList count=%lld\n", PGEMgr::GetPageExceptionsList( ).size(), PGEMgr::GetThreadHandlingList( ).size() );
 
 	getchar( );
 
@@ -828,7 +828,7 @@ void thread3( )
 	testPGE( );
 }
 
-int main( )
+int xxmain( )
 {
 	// test for multi-thread running in the same location
 
@@ -837,7 +837,7 @@ int main( )
 	//CreateThread( nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>( thread2 ), nullptr, 0, nullptr );
 	//CreateThread( nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>( thread3 ), nullptr, 0, nullptr );
 	
-	testPGE( );
+	//testPGE( );
 
 
 	return getchar( );

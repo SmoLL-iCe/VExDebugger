@@ -74,10 +74,7 @@ long __stdcall InitialExceptionHandler( EXCEPTION_POINTERS* pExceptionInfo )
 		return EXCEPTION_EXECUTE_HANDLER;
 	}
 
-
-
 	EnterCriticalSection( &HandlerCS );
-
 
 	auto PGECatch = PGEMgr::CheckPageGuardExceptions( pExceptionInfo );
 
@@ -228,11 +225,16 @@ bool VExDebugger::Init( HandlerType Type, bool Logs )
 	if ( !WinWrap::Init( ) )
 		return false;
 
-	//SpoofDbg::HookNtGetContextThread( );
-	//SpoofDbg::HookNtContinue( );
-
 	nLog::Init( );
 
+	nLog::file( "Inited\n" );
+
+	//if ( !SpoofDbg::HookNtGetContextThread( ) ) { 
+
+	//	nLog::file( "Fail NtGetContextThread\n" );
+	//}
+
+	// SpoofDbg::HookNtContinue( );
 
 	bool Result = false;
 

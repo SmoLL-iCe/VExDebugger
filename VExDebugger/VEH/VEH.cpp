@@ -2,6 +2,8 @@
 #include "../Tools/ntos.h"
 #include <iostream>
 #include "Structs.hpp"
+#include "../Tools/WinWrap.h"
+#include "../Tools/Logs.h"
 
 using TVectoredHandler = long( __stdcall* )( EXCEPTION_POINTERS* );
 
@@ -31,6 +33,8 @@ uintptr_t __stdcall HandleKiUserExceptionDispatcher( PEXCEPTION_RECORD Exception
 		.ContextRecord      = ContextRecord,
 
 	};
+
+	log_file( "ExceptionCode: 0x%X at 0x%p\n", ExceptionRecord->ExceptionCode, ExceptionRecord->ExceptionAddress );
 
 	auto const Result       = pMyVectoredHandler( &Exception );
 	
@@ -244,7 +248,7 @@ bool VEH_Internal::HookKiUserExceptionDispatcher( void* MyVectoredHandler )
 
 		ULONG   P		= 0;
 
-		auto status = NtProtectVirtualMemory( (HANDLE)(- 1 ), &Address, &Size, PAGE_EXECUTE_READWRITE, &P );
+		auto status = WinWrap::ProtectMemory( Address, Size, PAGE_EXECUTE_READWRITE, &P );
 
 		if ( status == 0 )
 		{
