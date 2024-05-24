@@ -59,11 +59,11 @@ struct BkpInfo
 	
 struct CatchedDetails
 {
-	uint32_t	Count		= 0;
+	std::uint32_t   Count      = 0;
 
-	uint32_t	ThreadId	= 0;
+	std::uint32_t   ThreadId   = 0;
 
-	CONTEXT		Ctx			= {};
+	CONTEXT         Ctx        = {};
 };
 
 struct ExceptionInfo
@@ -71,11 +71,11 @@ struct ExceptionInfo
 	CatchedDetails Details{};
 };
 
-using ExceptionInfoList				= std::map<uintptr_t, ExceptionInfo>;
+using ExceptionInfoList				= std::map<std::uintptr_t, ExceptionInfo>;
 
-using TBreakpointList				= std::map<uintptr_t, BkpInfo>;
+using TBreakpointList				= std::map<std::uintptr_t, BkpInfo>;
 
-using TAssocExceptionList			= std::map<uintptr_t, ExceptionInfoList>;
+using TAssocExceptionList			= std::map<std::uintptr_t, ExceptionInfoList>;
 
 namespace VExDebugger
 {
@@ -85,27 +85,27 @@ namespace VExDebugger
 
 	void CallBreakpointList( const std::function<void( TBreakpointList& )>& lpEnumFunc );
 
-	bool StartMonitorAddress( const uintptr_t Address, const BkpMethod Method, const BkpTrigger Trigger, const BkpSize Size );
+	bool StartMonitorAddress( const std::uintptr_t Address, const BkpMethod Method, const BkpTrigger Trigger, const BkpSize Size );
 
-	bool SetTracerAddress( const uintptr_t Address, const BkpMethod Method, const BkpTrigger Trigger, const BkpSize Size, TCallback Callback );
+	bool SetTracerAddress( const std::uintptr_t Address, const BkpMethod Method, const BkpTrigger Trigger, const BkpSize Size, TCallback Callback );
 	
-	bool RemoveAddress( const uintptr_t Address, const BkpMethod Method, const BkpTrigger Trigger );
+	bool RemoveAddress( const std::uintptr_t Address, const BkpMethod Method, const BkpTrigger Trigger );
 
 	template <typename T>
 	inline bool StartMonitorAddress( T Address, BkpMethod Method, BkpTrigger Trigger, BkpSize Size )
 	{
-		return StartMonitorAddress( (uintptr_t)( Address ), Method, Trigger, Size );
+		return StartMonitorAddress( (std::uintptr_t)( Address ), Method, Trigger, Size );
 	}
 
 	template <typename T>
 	inline bool SetTracerAddress( T Address, BkpMethod Method, BkpTrigger Trigger, BkpSize Size, TCallback Callback )
 	{
-		return SetTracerAddress( (uintptr_t)( Address ), Method, Trigger, Size, Callback );
+		return SetTracerAddress( (std::uintptr_t)( Address ), Method, Trigger, Size, Callback );
 	}
 
 	template <typename T>
 	inline bool RemoveAddress( T Address, BkpMethod Method, BkpTrigger Trigger )
 	{
-		return RemoveAddress( (uintptr_t)( Address ), Method, Trigger );
+		return RemoveAddress( (std::uintptr_t)( Address ), Method, Trigger );
 	}
 }

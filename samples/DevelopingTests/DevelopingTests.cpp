@@ -581,9 +581,6 @@ int main( )
 				if ( !Address )
 					continue;
 
-				//if ( BpInfo.Method != BkpMethod::Hardware )             // only support hardware breakpoint
-				//	continue;
-
 				bool Skip = false;
 
 				VExDebugger::CallAssocExceptionList( [&]( TAssocExceptionList AssocExceptionList ) -> void {
@@ -598,7 +595,6 @@ int main( )
 
 					std::cout << "\nIndex: " << ( BpInfo.Pos + 1 ) << ", Address: 0x" <<
 						std::hex << std::uppercase << Address << "\n";
-
 
 					for ( const auto& [ExceptionAddress, ExceptionInfo] : ExceptionList )
 					{

@@ -11,28 +11,28 @@
 #include "PGEBkp/PGEHandler.h"
 #include "PGEBkp/PGEMgr.h"
 
-bool                    isCsInitialized				= false;
+bool                    isCsInitialized             = false;
 
-CRITICAL_SECTION        HandlerCS					= { };
+CRITICAL_SECTION        HandlerCS                   = { };
 
-TAssocExceptionList     AddressAssocExceptionList	= { };
+TAssocExceptionList     AddressAssocExceptionList   = { };
 
-TBreakpointList         BreakpointList				= { };
+TBreakpointList         BreakpointList              = { };
 
-void*                   pLvlExcptFilter				= nullptr;
+void*                   pLvlExcptFilter             = nullptr;
 
-void*                   pExcpHandlerEntry			= nullptr;
+void*                   pExcpHandlerEntry           = nullptr;
 
-void*                   pCtnHandlerEntry			= nullptr;
+void*                   pCtnHandlerEntry            = nullptr;
 
-void*                   OriginalHandlerFilter		= nullptr;
+void*                   OriginalHandlerFilter       = nullptr;
 
-std::map<uintptr_t, ExceptionInfoList>& VExInternal::GetAssocExceptionList( )
+std::map<std::uintptr_t, ExceptionInfoList>& VExInternal::GetAssocExceptionList( )
 {
 	return AddressAssocExceptionList;
 }
 
-std::map<uintptr_t, BkpInfo>& VExInternal::GetBreakpointList( )
+std::map<std::uintptr_t, BkpInfo>& VExInternal::GetBreakpointList( )
 {
 	return BreakpointList;
 }
@@ -129,7 +129,7 @@ long __stdcall InitialContinueHandler( EXCEPTION_POINTERS* pExceptionInfo )
 	return Result;
 }
 
-bool VExDebugger::StartMonitorAddress( const uintptr_t Address, const BkpMethod Method, const BkpTrigger Trigger, const BkpSize Size )
+bool VExDebugger::StartMonitorAddress( const std::uintptr_t Address, const BkpMethod Method, const BkpTrigger Trigger, const BkpSize Size )
 {
 	if ( !isCsInitialized )
 		return false;
@@ -155,7 +155,7 @@ bool VExDebugger::StartMonitorAddress( const uintptr_t Address, const BkpMethod 
 	return Result;
 }
 
-bool VExDebugger::SetTracerAddress( const uintptr_t Address, const BkpMethod Method, const BkpTrigger Trigger, const BkpSize Size, TCallback Callback )
+bool VExDebugger::SetTracerAddress( const std::uintptr_t Address, const BkpMethod Method, const BkpTrigger Trigger, const BkpSize Size, TCallback Callback )
 {
 	if ( !isCsInitialized )
 		return false;
@@ -181,7 +181,7 @@ bool VExDebugger::SetTracerAddress( const uintptr_t Address, const BkpMethod Met
 	return Result;
 }
 
-bool VExDebugger::RemoveAddress( const uintptr_t Address, const BkpMethod Method, const BkpTrigger Trigger )
+bool VExDebugger::RemoveAddress( const std::uintptr_t Address, const BkpMethod Method, const BkpTrigger Trigger )
 {
 	if ( !isCsInitialized )
 		return false;
