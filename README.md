@@ -14,6 +14,14 @@ You can compile your own project using the Debugger library or you can use one o
 In the examples you will find ways to debug your own executable or create a dll to attach to another process and debug it. (use an injector for this.)
 And add the addresses you want to know who write, access or execute.
 
+## An example of what can be done with this library.
+
+### This example uses [ImGui](https://github.com/ocornut/imgui)
+
+<h3 align="center">
+  <img src="README/vex_debug_gui.png" alt="screeen" />
+</h3>
+
 ## Example of use:
 
 Hook using VExDebugger
@@ -53,7 +61,7 @@ Tracer using VExDebugger
       BkpSize::Size_1,           // Check in 1 byte space
       [ pDetour ]( PEXCEPTION_RECORD pExceptRec, PCONTEXT pContext ) -> CBReturn  {
 
-		      std::cout << "Address: 0x" << std::hex << std::uppercase << pContext->Rip << "\n";
+          std::cout << "Address: 0x" << std::hex << std::uppercase << pContext->Rip << "\n";
 
           return CBReturn::StepOver; // Once you reach the trigger, you can continue debugging the next instructions. between the StepOver or StepInto
       }
@@ -115,13 +123,6 @@ Using monitor address
   } );
 
 ```
-
-
-### This example uses [ImGui](https://github.com/ocornut/imgui)
-
-<h3 align="center">
-  <img src="README/vex_debug_gui.png" alt="screeen" />
-</h3>
 
 ### .NET Sample C++/CLI
 
