@@ -22,7 +22,7 @@ And add the addresses you want to know who write, access or execute.
   <img src="README/vex_debug_gui.png" alt="screeen" />
 </h3>
 
-## Example of use:
+## Examples of integration into your project:
 
 Hook using VExDebugger
 ```cpp
@@ -123,15 +123,6 @@ Using monitor address
   } );
 
 ```
-
-### .NET Sample C++/CLI
-
-- **Common Language Runtime Support** - CLR
-- **.NET version** - v4.8
-
-<h3 align="center">
-  <img src="README/vex_debug_form.png" alt="screeen" />
-</h3>
 
 > **Nota:** _It may have problems depending on some variant not yet tested._
 
